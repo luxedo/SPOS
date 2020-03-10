@@ -144,11 +144,11 @@ Size of the block in bits.
 
 ### `key`
 
-The key of the data in `payload_data`.
+The key to get the value of the `block` in `payload_data`.
 
 ### `value`
 
-A static value to be used in every message.
+A static value of the `block`.
 
 ### `settings`
 
@@ -160,8 +160,6 @@ There are 12 types avaliable for serializing data:
 `boolean`, `binary`, `integer`, `float`, `string`, `array`, `object`,
 `steps`, `categories`, `dynamic_array`, `pad` and `crc8`.
 
----
-
 The basic types are:
 
 #### `boolean`
@@ -172,7 +170,7 @@ Settings: `None`.
 
 #### `binary`
 
-Binary value.
+Binary value. The data can be a binary string or an hex string.
 
 This data is truncated in the least significant bits if the size of
 the string is bigger than `bits`.
@@ -181,7 +179,7 @@ Settins: `None`.
 
 #### `integer`
 
-Integer value. The value can be an int or hex.
+Integer value.
 
 Settings:
 
@@ -211,7 +209,7 @@ This data type encodes the string to base64. Characters outside the
 are replaced with `/` (index 62) and spaces are replaced with `+`
 (index 63).
 
-The size in bits of this type is 6 \$ast; `length`.
+The size in bits of this type is 6 \* `length`.
 
 Settings:
 
@@ -246,7 +244,7 @@ payload_spec = {
 
 Array value with fixed length. The bits argument is not required.
 
-The size in bits of this type is `length` \* `data` &rarr; `bits`.
+The size in bits of this type is `length` \* `data` &arr; `bits`.
 
 Settings:
 
@@ -322,6 +320,15 @@ Settings:
 - `categories` (array): The array of categories strings.
 
 #### `dynamic_array`
+
+Encodes an array of arbitrary length. The bits argument is not required.
+
+The size in bits of this type is `s` \* `data` &arr; `bits`, where `s` 
+is the length of the encoded array.
+
+Settings:
+- `length` (int): Array maximum length.
+- `blocks` (block): The `blocK` of the objects in the array.
 
 #### `pad`
 
