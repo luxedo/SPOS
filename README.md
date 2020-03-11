@@ -21,17 +21,23 @@ payload_spec = {
     "type": "integer",
     "name": "payload_version",
     "value": 1,  # 01
-    "bits": 2
+    "settings": {
+      "bits": 2
+    }
   }, {
     "type": "integer",
     "name": "integer 1",
     "key": "int_data",
-    "bits": 6
+    "settings": {
+      "bits": 6
+    }
   }, {
     "type": "float",
     "name": "float 1",
     "key": "float_data",
-    "bits": 6
+    "settings": {
+      "bits": 6
+    }
 }]
 payload_data = {
   "int_data": 13,    # 001101
@@ -53,17 +59,23 @@ payload_spec = {
     "type": "integer",
     "name": "payload_version",
     "value": 1,  # 01
-    "bits": 2
+    "settings": {
+      "bits": 2
+    }
   }, {
     "type": "integer",
     "name": "integer 1",
     "key": "int_data",
-    "bits": 6
+    "settings": {
+      "bits": 6
+    }
   }, {
     "type": "float",
     "name": "float 1",
     "key": "float_data",
-    "bits": 6
+    "settings": {
+      "bits": 6
+    }
 }]
 message = "0b010011010010011"
 payload_data = spos.decode(message, payload_spec)
@@ -85,9 +97,9 @@ payload_spec = {
   "items": [{
     "type:": "integer",
     "name": "temperature",
-    "bits": 6,
     "key": "temp",
     "settings": {
+      "bits": 6,
       "offset": 273
 }}]
 ```
@@ -138,10 +150,6 @@ value and underflow to the minimum.
 
 The name of the `block`.
 
-### `bits`
-
-Size of the block in bits.
-
 ### `key`
 
 The key to get the value of the `block` in `payload_data`.
@@ -156,26 +164,33 @@ Additional settings for each type.
 
 ### `type`
 
-There are 12 types avaliable for serializing data:
-`boolean`, `binary`, `integer`, `float`, `string`, `array`, `object`,
-`steps`, `categories`, `dynamic_array`, `pad` and `crc8`.
+There are 11 types avaliable for serializing data:
+`boolean`, `binary`, `integer`, `float`, `pad`, `array`, `object`,
+`string`, `steps`, `categories`, and `crc8`.
 
 The basic types are:
 
 #### `boolean`
 
-Boolean value. For this type, the `bits` key is not required.
+Boolean value.
 
 Settings: `None`.
 
 #### `binary`
 
-Binary value. The data can be a binary string or an hex string.
+Binary value. The data can be a binary string or an hex string. Eg
+
+```
+"0b10101010"  # binary
+"0xdeadbeef"  # hex
+```
 
 This data is truncated in the least significant bits if the size of
 the string is bigger than `bits`.
 
-Settins: `None`.
+Settings:
+
+- `bits` (int): length of the block in bits
 
 #### `integer`
 
@@ -183,6 +198,7 @@ Integer value.
 
 Settings:
 
+- `bits` (int): length of the block in bits
 - `offset` (int): An integer to offset the final value. Default: 0.
 
 #### `float`
@@ -196,13 +212,49 @@ serialized value is the closest to the real one by default
 
 Settings:
 
-- `lower` (float): Float lower boundary. Default 0.
-- `upper` (float): Float upper boundary. Default 1.
+- `bits` (int): length of the block in bits
+- `lower` (int|float): Float lower boundary. Default 0.
+- `upper` (int|float): Float upper boundary. Default 1.
 - `approximation` (str): Float approximation method. Values can be: "round", "floor", "ceil". Default: "round"
+
+#### `pad`
+
+Pads the message. No data is collected from this block.
+
+Settings:
+
+- `bits` (int): length of the block in bits
+
+---
+
+Advanced types:
+
+#### `array`
+
+Array value with fixed length.
+
+The size in bits of this type is `length` \* `data` &rarr; `bits`.
+
+Settings:
+
+- `length` (int): Array maximum length.
+- `blocks` (block): The `block` of the objects in the array.
+
+#### `object`
+
+Object value. Maps the data to an object.
+
+The size in bits of this type is the sum of sizes of blocks declared
+for this `block`.
+
+Settings:
+
+- `items` (items): The `items` describing the object. The keys for
+  the object will be the value of `name` in each `block`.
 
 #### `string`
 
-String value. The bits argument is not required.
+String value.
 
 This data type encodes the string to base64. Characters outside the
 [base64 index table](https://en.wikipedia.org/wiki/Base64#Base64_table)
@@ -223,9 +275,9 @@ payload_spec = {
   "items": [{
     "type:": "string",
     "name": "text",
-    "length": 128,
     "key": "text1",
     "settings": {
+      "length": 128,
       "custom_alphabeth": {
         0: "{",
         1: "}",
@@ -240,32 +292,6 @@ payload_spec = {
 
 ```
 
-#### `array`
-
-Array value with fixed length. The bits argument is not required.
-
-The size in bits of this type is `length` \* `data` &arr; `bits`.
-
-Settings:
-
-- `length` (int): Array maximum length.
-- `blocks` (block): The `blocK` of the objects in the array.
-
-#### `object`
-
-Object value. Maps the data to an object. The bits argument is not required.
-
-The size in bits of this type is the sum of sizes of blocks declared
-for this `block`.
-
-Settings:
-
-- `items` (items): The `items` describing the object. The keys for
-  the object will be the value of `name` in each `block`.
-
----
-
-Advanced types:
 
 #### `steps`
 
@@ -319,29 +345,10 @@ Settings:
 
 - `categories` (array): The array of categories strings.
 
-#### `dynamic_array`
-
-Encodes an array of arbitrary length. The bits argument is not required.
-
-The size in bits of this type is `s` \* `data` &arr; `bits`, where `s` 
-is the length of the encoded array.
-
-Settings:
-- `length` (int): Array maximum length.
-- `blocks` (block): The `blocK` of the objects in the array.
-
-#### `pad`
-
-Pads the message. No data is collected from this block.
-The bits argument is not reuired.
-
-Settings: `None`.
-
 #### `crc8`
 
 Calculates the [CRC8](https://en.wikipedia.org/wiki/Cyclic_redundancy_check)
-for the message. The bits argument is not required. The size in bits
-for this `block` is always 8.
+for the message. The size in bits for this `block` is always 8.
 
 Settings: `None`.
 
@@ -349,10 +356,10 @@ Settings: `None`.
 
 ```python
 # Encode data
-cat payload_data | spos packet_spec.json
+cat payload_data | spos payload_spec.json
 
 # Decode data
-cat message | spos -d packet_spec.json
+cat message | spos -d payload_spec.json
 ```
 
 ## Language Support
@@ -362,7 +369,7 @@ cat message | spos -d packet_spec.json
 ## License
 
 > SPOS - Small Payload Object Serializer
-> Copyright (C) 2020 Luiz Eduardo Amaral
+> Copyright (C) 2020 Luiz Eduardo Amaral <luizamaral306@gmail.com>
 >
 > This program is free software: you can redistribute it and/or modify
 > it under the terms of the GNU General Public License as published by
