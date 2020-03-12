@@ -364,6 +364,8 @@ cat message | spos -d payload_spec.json
 ## Language Support
 
 `SPOS` is built with Python3 as a library and a command.
+## Contributors
+- [Arthur Lindemute](https://github.com/arthurlindemute)
 
 ## License
 
