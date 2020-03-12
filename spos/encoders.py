@@ -56,7 +56,6 @@ def encode_float(value, block):
         approx = math.floor
     elif approximation == "ceil":
         approx = math.ceil
-
     overflow = 2 ** bits - 1
     delta = upper - lower
     value = overflow * (value - lower) / delta

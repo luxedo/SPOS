@@ -13,6 +13,7 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
+import copy
 from string import ascii_uppercase, ascii_lowercase, digits
 from . import encoders, decoders, validators
 
@@ -24,7 +25,7 @@ BASE64_ALPHABETH = {
 BASE64_REV_ALPHABETH = {val: key for key, val in BASE64_ALPHABETH.items()}
 
 TYPES_SETTINGS = {
-    "boolean": {"fixed": {"bits": 2}},
+    "boolean": {},
     "binary": {"required": {"bits": int}},
     "integer": {
         "required": {"bits": int},
@@ -43,8 +44,8 @@ TYPES_SETTINGS = {
         },
     },
     "pad": {"required": {"bits": int},},
-    "array": {"required": {"bits": int, "blocks": "block"},},
-    "object": {"required": {"items": "items"},},
+    "array": {"required": {"bits": int, "blocks": "blocks"},},
+    "object": {"required": {"items": "items"}},
     "string": {
         "required": {"length": int},
         "optional": {"custom_alphabeth": {"type": (dict), "default": {}}},
@@ -152,13 +153,13 @@ def validate_block(block, parent="root"):
         )
     type_settings = TYPES_SETTINGS[block["type"]]
 
-    # Check settings
+    # Check required settings
     for s_name, tp in type_settings.get("required", {}).items():
         if s_name not in block.get("settings", {}):
             raise KeyError(
                 "Block '{0}: {1}' requires setting '{2}'.".format(parent, name, s_name)
             )
-        if tp == "block":
+        if tp == "blocks":
             validate_block(
                 block["settings"]["blocks"], "{0}: {1}".format(parent, block["name"])
             )
@@ -171,6 +172,8 @@ def validate_block(block, parent="root"):
                     parent, name, s_name, type(block["settings"][s_name]), tp
                 )
             )
+
+    # Check optional settings
     for s_name, opts in type_settings.get("optional", {}).items():
         if not s_name in block["settings"]:
             block["settings"][s_name] = opts["default"]
@@ -181,11 +184,17 @@ def validate_block(block, parent="root"):
                 )
             )
 
-    # Adds fixed parameters
-    for s_name, val in type_settings.get("fixed", {}).items():
-        if "settingsg" not in block:
-            block["settings"] = {}
-        block["settings"][s_name] = val
+    # Check for unexpected settings
+    allowed_settings = list(type_settings.get("optional", {}).keys()) + list(
+        type_settings.get("required", {}).keys()
+    )
+    for key in block.get("settings", {}):
+        if key not in allowed_settings:
+            raise KeyError(
+                "Block '{0}' settings has an unexpected key '{1}'.".format(
+                    block["name"], key
+                )
+            )
 
 
 def encode_block(value, block):
@@ -255,8 +264,45 @@ def decode_items(message, items):
     """
     values = []
     offset = 2
+    items = fill_bits_settings(message, items)
     for block in items:
         bits = block["settings"]["bits"]
         values.append(decode_block("0b" + message[offset : offset + bits], block))
         offset += bits
     return values
+
+
+def fill_bits_settings(message, items):
+    """
+    Fills the bits values for each block in items if
+    Args:
+        message (str): Binary string of the message.
+        items (list): A list of blocks.
+
+    Returns:
+        items (list): The list of blocks with the bits values filled.
+    """
+    items = copy.deepcopy(items)
+    for block in items:
+        block["settings"] = block.get("settings", {})
+        if block["type"] == "boolean":
+            block["settings"]["bits"] = 1
+        if block["type"] == "object":
+            block["settings"]["bits"] = 0
+            block["settings"]["items"] = fill_bits_settings(
+                message, block["settings"]["items"]
+            )
+    return items
+
+    ## Adds fixed parameters
+    # for s_name, val in type_settings.get("fixed", {}).items():
+    #    if "settingsg" not in block:
+    #        block["settings"] = {}
+    #    block["settings"][s_name] = val
+
+    # if "bits" in block.get("settings", {}):
+    #     acc += block["settings"]["bits"]
+    # if block["type"] == "object":
+    #     for b in block["settings"]["items"]:
+    #         acc += accumulate_bits(message, b)
+    # return acc
