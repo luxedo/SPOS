@@ -13,6 +13,6 @@ setuptools.setup(
     author_email="luizamaral306@gmail.com",
     url="https://github.com/luxedo/SPOS",
     packages=setuptools.find_packages(),
-    #packages=["payload", "serializer", "LoRa", "Globalstar"],
+    # packages=["payload", "serializer", "LoRa", "Globalstar"],
     python_requires=">=3.6",
 )

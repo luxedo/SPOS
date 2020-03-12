@@ -15,67 +15,25 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
 
-def validate_boolean(value, name):
+def validate_type(value, v_type, block):
     """
-    Validates a boolean block.
+    Validates the correct type for the block value.
     """
-    if not isinstance(value, bool):
+    if not isinstance(value, v_type):
         raise TypeError(
-            "Value for block '{0}' must be a boolean, not '{1}'".format(
-                name, type(value)
+            "Value for block '{0}' must be of type '{1}', not '{2}'".format(
+                block["name"], v_type, type(value)
             )
         )
 
 
-def validate_binary(value, name):
+def validate_binary(value, block):
     """
-    Validates a binary block.
+    Validates a binary block value.
     """
-    if not isinstance(value, str):
-        raise TypeError(
-            "Value for block '{0}' must be a string, not '{1}.'".format(
-                name, type(value)
-            )
-        )
     if not (value.startswith("0b") or value.startswith("0x")):
         raise TypeError(
             "Value for block '{0}' must be a binary string or an hex string.".format(
-                name
-            )
-        )
-
-
-def validate_integer(value, name):
-    """
-    Validates a float block.
-    """
-    if not isinstance(value, int):
-        raise TypeError(
-            "Value for block '{0}' must be an 'int', not '{1}.'".format(
-                name, type(value)
-            )
-        )
-
-
-def validate_float(value, name):
-    """
-    Validates a float block.
-    """
-    if not isinstance(value, (int, float)):
-        raise TypeError(
-            "Value for block '{0}' must be an 'int' or 'float', not '{1}.'".format(
-                name, type(value)
-            )
-        )
-
-
-def validate_array(value, name):
-    """
-    Validates an array block.
-    """
-    if not (isinstance(value, int) or isinstance(value, float)):
-        raise TypeError(
-            "Value for block '{0}' must be an 'int' or 'float', not '{1}.'".format(
-                name, type(value)
+                block["name"]
             )
         )

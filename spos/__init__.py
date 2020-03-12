@@ -13,110 +13,179 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
+from string import ascii_uppercase, ascii_lowercase, digits
 from . import encoders, decoders, validators
+
+
+BASE64_ALPHABETH = {
+    idx: val
+    for idx, val in enumerate(ascii_uppercase + ascii_lowercase + digits + "+/")
+}
+BASE64_REV_ALPHABETH = {val: key for key, val in BASE64_ALPHABETH.items()}
+
+TYPES_SETTINGS = {
+    "boolean": {"fixed": {"bits": 2}},
+    "binary": {"required": {"bits": int}},
+    "integer": {
+        "required": {"bits": int},
+        "optional": {"offset": {"type": int, "default": 0}},
+    },
+    "float": {
+        "required": {"bits": int},
+        "optional": {
+            "lower": {"type": (int, float), "default": 0},
+            "upper": {"type": (int, float), "default": 1},
+            "approximation": {
+                "type": (str),
+                "default": "round",
+                "choices": ["round", "floor", "ceil"],
+            },
+        },
+    },
+    "pad": {"required": {"bits": int},},
+    "array": {"required": {"bits": int, "blocks": "block"},},
+    "object": {"required": {"items": "items"},},
+    "string": {
+        "required": {"length": int},
+        "optional": {"custom_alphabeth": {"type": (dict), "default": {}}},
+    },
+    "steps": {
+        "required": {"steps": list},
+        "optional": {"steps_names": {"type": list, "default": []}},
+    },
+    "categories": {"required": {"categories": list},},
+}
 
 TYPES = {
     "boolean": {
-        "validator": validators.validate_boolean,
+        "input": (bool, int),
         "encoder": encoders.encode_boolean,
         "decoder": decoders.decode_boolean,
     },
     "binary": {
+        "input": str,
         "validator": validators.validate_binary,
         "encoder": encoders.encode_binary,
         "decoder": decoders.decode_binary,
     },
     "integer": {
-        "validator": validators.validate_integer,
+        "input": int,
         "encoder": encoders.encode_integer,
         "decoder": decoders.decode_integer,
-        "required": {"bits": int},
-        "optional": {"offset": {"type": [int], "default": 0}},
     },
     "float": {
-        "validator": validators.validate_float,
+        "input": (int, float),
         "encoder": encoders.encode_float,
         "decoder": decoders.decode_float,
-        "required": {"bits": int},
-        "optional": {
-            "lower": {"type": [int, float], "default": 0},
-            "upper": {"type": [int, float], "default": 1},
-            "approximation": {
-                "type": [str],
-                "default": "round",
-                "choices": ["round", "floor", "ceil"],
-            },
-        },
     },
     "pad": {
-        "validator": lambda value, name: None,
         "encoder": lambda value, block: "0b" + "1" * block["settings"]["bits"],
         "decoder": lambda message, block: None,
     },
+    # We inject dependencies here to keep the functions with the same interface
     "array": {
-        "validator": validators.validate_array,
-        "encoder": encoders.encode_array,
-        "decoder": decoders.decode_array,
-        "required": {"bits": int},
-        "optional": {
-            "lower": {"type": [int, float], "default": 0},
-            "upper": {"type": [int, float], "default": 1},
-            "approximation": {
-                "type": [str],
-                "default": "round",
-                "choices": ["round", "floor", "ceil"],
-            },
-        },
+        "input": list,
+        "encoder": lambda value, block: encoders.encode_array(
+            value, block, encode_block, encode_items
+        ),
+        "decoder": lambda message, block: decoders.decode_array(
+            message, block, decode_block
+        ),
+    },
+    "object": {
+        "input": dict,
+        "encoder": lambda value, block: encoders.encode_object(
+            value, block, encode_items
+        ),
+        "decoder": lambda message, block: decoders.decode_object(
+            message, block, decode_items
+        ),
+    },
+    "string": {
+        "input": str,
+        "encoder": lambda value, block: encoders.encode_string(
+            value, block, BASE64_REV_ALPHABETH
+        ),
+        "decoder": lambda value, block: decoders.decode_string(
+            value, block, BASE64_ALPHABETH, decode_items
+        ),
+    },
+    "steps": {
+        "input": (int, float),
+        "encoder": encoders.encode_steps,
+        "decoder": decoders.decode_steps,
+    },
+    "categories": {
+        "input": str,
+        "encoder": encoders.encode_categories,
+        "decoder": decoders.decode_categories,
     },
 }
 
 
-def validate_block(block_spec):
+def validate_block(block, parent="root"):
     """
     Validates block specification.
 
     Args:
-        block_spec (dict): Block specification.
+        block (dict): Block specification.
 
     Raises:
-        KeyError, ValueError, TypeError: For non conformant block_specs.
+        KeyError, ValueError, TypeError: For non conformant blocks.
     """
     # Check name
-    if "name" not in block_spec:
-        raise KeyError("Block '{0}' must have 'name'.".format(block_spec))
-    name = block_spec["name"]
+    if "name" not in block:
+        raise KeyError("Block '{0}: {1}' must have 'name'.".format(parent, block))
+    name = block["name"]
     if not isinstance(name, str):
-        raise TypeError("Block '{0}' 'name' must be a string.".format(name))
+        raise TypeError(
+            "Block '{0}: {1}' 'name' must be a string.".format(parent, name)
+        )
 
     # Check type
-    if "type" not in block_spec:
-        raise KeyError("Block '{0}' must have 'type'.".format(name))
-    b_type = block_spec["type"]
-    if block_spec["type"] not in TYPES:
-        raise ValueError("Block '{0}' has an unknown 'type' {1}.".format(name, b_type))
-    type_settings = TYPES[block_spec["type"]]
+    if "type" not in block:
+        raise KeyError("Block '{0}: {1}' must have 'type'.".format(parent, name))
+    b_type = block["type"]
+    if block["type"] not in TYPES:
+        raise ValueError(
+            "Block '{0}: {1}' has an unknown 'type' {2}.".format(parent, name, b_type)
+        )
+    type_settings = TYPES_SETTINGS[block["type"]]
 
     # Check settings
     for s_name, tp in type_settings.get("required", {}).items():
-        if s_name not in block_spec.get("settings", {}):
-            raise KeyError("Block '{0}' requires setting '{1}'.".format(name, s_name))
-        if not isinstance(block_spec["settings"][s_name], tp):
+        if s_name not in block.get("settings", {}):
+            raise KeyError(
+                "Block '{0}: {1}' requires setting '{2}'.".format(parent, name, s_name)
+            )
+        if tp == "block":
+            validate_block(
+                block["settings"]["blocks"], "{0}: {1}".format(parent, block["name"])
+            )
+        elif tp == "items":
+            for b in block["settings"]["items"]:
+                validate_block(b, "{0}: {1}".format(parent, block["name"]))
+        elif not isinstance(block["settings"][s_name], tp):
             raise TypeError(
-                "Block '{0}' setting '{1}' has wrong type '{2}' instead of '{3}'.".format(
-                    name, s_name, type(block_spec["settings"][s_name]), tp
+                "Block '{0}: {1}' setting '{2}' has wrong type '{3}' instead of '{4}'.".format(
+                    parent, name, s_name, type(block["settings"][s_name]), tp
                 )
             )
     for s_name, opts in type_settings.get("optional", {}).items():
-        if not s_name in block_spec["settings"]:
-            block_spec["settings"][s_name] = opts["default"]
-        if not any(
-            isinstance(block_spec["settings"][s_name], tp) for tp in opts["type"]
-        ):
+        if not s_name in block["settings"]:
+            block["settings"][s_name] = opts["default"]
+        if not isinstance(block["settings"][s_name], opts["type"]):
             raise TypeError(
-                "Block '{0}' optional setting '{1}' has wrong type '{2}' instead of '{3}'.".format(
-                    name, s_name, type(block_spec["settings"][s_name]), tp
+                "Block '{0}: {1}' optional setting '{2}' has wrong type '{3}' instead of '{4}'.".format(
+                    parent, name, s_name, type(block["settings"][s_name]), tp
                 )
             )
+
+    # Adds fixed parameters
+    for s_name, val in type_settings.get("fixed", {}).items():
+        if "settingsg" not in block:
+            block["settings"] = {}
+        block["settings"][s_name] = val
 
 
 def encode_block(value, block):
@@ -132,7 +201,10 @@ def encode_block(value, block):
     """
     validate_block(block)
     type_conf = TYPES[block["type"]]
-    type_conf["validator"](value, block)
+    if "input" in type_conf:
+        validators.validate_type(value, type_conf["input"], block)
+    if "validator" in type_conf:
+        type_conf["validator"](value, block)
     return type_conf["encoder"](value, block)
 
 
@@ -145,8 +217,46 @@ def decode_block(message, block):
         block (dict): Block specifications
 
     Returns:
-        message (str): Binary string of the message.
+        value: Value of the message.
+        bits (int): Number of consumed bits in the operation.
     """
     validate_block(block)
     type_conf = TYPES[block["type"]]
     return type_conf["decoder"](message, block)
+
+
+def encode_items(values, items):
+    """
+    Encodes a list of blocks.
+
+    Args:
+        values (list): The list of values to encode.
+        items (list): A list of blocks.
+
+    Returns:
+        message (str): Binary string of the message.
+    """
+    message = "0b"
+    for value, block in zip(values, items):
+        message += encode_block(value, block)[2:]
+    return message
+
+
+def decode_items(message, items):
+    """
+    Decodes list of blocks.
+
+    Args:
+        message (str): Binary string of the message.
+        items (list): A list of blocks.
+
+    Returns:
+        values (list): The list of values for the blocks.
+    """
+    values = []
+    offset = 2
+    for block in items:
+        bits = block["settings"]["bits"]
+        values.append(decode_block("0b" + message[offset : offset + bits], block))
+        offset += bits
+    return values

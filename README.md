@@ -120,7 +120,7 @@ Message name
 
 Message version
 
-#### `defaults` (dict)
+#### `defaults` (object)
 
 Overrides default `settings` for the `blocks`. `settings` declared
 inside the `block` takes precedence over the defaults.
@@ -233,11 +233,11 @@ Advanced types:
 
 Array value with fixed length.
 
-The size in bits of this type is `length` \* `data` &rarr; `bits`.
+The size in bits of this type is `bits` + `length` \* `blocks` &rarr; `bits`.
 
 Settings:
 
-- `length` (int): Array maximum length.
+- `bits` (int): Number of bits to store the maximum length of the array.
 - `blocks` (block): The `block` of the objects in the array.
 
 #### `object`
@@ -266,7 +266,7 @@ The size in bits of this type is 6 \* `length`.
 Settings:
 
 - `length` (int): String maximum length.
-- `custom_alphabeth` (dict): Remaps the characters to another index.
+- `custom_alphabeth` (object): Remaps the characters to another index.
   eg: Adding support for a `json` string but sacrificing the first 7
   indexes (ABCDEFG).
 
@@ -291,7 +291,6 @@ payload_spec = {
 }]
 
 ```
-
 
 #### `steps`
 
