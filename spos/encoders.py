@@ -14,6 +14,7 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 import math
+import crc8
 
 
 def encode_boolean(value, block):
@@ -128,15 +129,29 @@ def encode_categories(value, block):
     return encode_integer(value, block)
 
 
+def encode_crc8(value, block):
+    """
+    Encodes a categories value according to block specifications.
+    """
+    if value.startswith("0x"):
+        value = bytes.fromhex(value[2:])
+    else:
+        value = bytes.fromhex(hex(int(value, 2))[2:])
+    hasher = crc8.crc8()
+    hasher.update(value)
+    crc = bin(int(hasher.hexdigest(), 16))
+    crc = "0b" + "{0:0>8}".format(crc[2:])
+    return crc
+
+
 def truncate_bits(bit_str, bits):
     """
     Truncates the `bit_str` to up to `bits`.
-
     Args:
         bit_str (str): Bit string.
         bits (int): Number of bits to truncate.
 
     Returns:
         trunc_bit_str (str): Truncated bit string.
-        """
+    """
     return "0b" + "0" * (bits - len(bit_str) + 2) + bit_str[2 : bits + 2]

@@ -55,6 +55,7 @@ TYPES_SETTINGS = {
         "optional": {"steps_names": {"type": list, "default": []}},
     },
     "categories": {"required": {"categories": list},},
+    "crc8": {"fixed": {"bits": 8},},
 }
 
 TYPES = {
@@ -120,6 +121,12 @@ TYPES = {
         "input": str,
         "encoder": encoders.encode_categories,
         "decoder": decoders.decode_categories,
+    },
+    "crc8": {
+        "input": str,
+        "validator": validators.validate_crc8,
+        "encoder": encoders.encode_crc8,
+        "decoder": decoders.decode_crc8,
     },
 }
 

@@ -101,7 +101,7 @@ payload_spec = {
     "settings": {
       "bits": 6,
       "offset": 273
-}}]
+}}]}
 ```
 
 Additional keys can be provided and keys not listed are ignored.

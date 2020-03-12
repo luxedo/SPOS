@@ -37,3 +37,20 @@ def validate_binary(value, block):
                 block["name"]
             )
         )
+
+
+def validate_crc8(value, name):
+    """
+    Validates a binary block.
+    """
+    validate_binary(value, name)
+    if value.startswith("0b") and not (len(value[2:]) % 8 == 0):
+        raise ValueError(
+            "Binary string '{0}' must have an 8-multiple number of characters (bits)".format(
+                name
+            )
+        )
+    elif value.startswith("0x") and not (len(value[2:]) % 2 == 0):
+        raise ValueError(
+            "Hex string '{0}' must have a pair number of characters".format(name)
+        )

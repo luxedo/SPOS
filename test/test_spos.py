@@ -557,3 +557,19 @@ class TestBlock(unittest.TestCase):
         t_dec = "error"
         self.assertEqual(spos.encode_block(t, block), a)
         self.assertEqual(spos.decode_block(a, block), t_dec)
+
+    def test_crc_bin(self):
+        t = "0b1011110010110010"
+        a = "0b10100100"
+        b = "0b101111001011001010100100"
+        block = {"name": "crc BIN test", "type": "crc8"}
+        self.assertEqual(spos.encode_block(t, block), a)
+        self.assertEqual(spos.decode_block(b, block), True)
+
+    def test_crc_hex(self):
+        t = "0xABCD35"
+        a = "0b00101011"
+        b = "0b10101011110011010011010100101011"
+        block = {"name": "crc HEX test", "type": "crc8"}
+        self.assertEqual(spos.encode_block(t, block), a)
+        self.assertEqual(spos.decode_block(b, block), True)
