@@ -438,6 +438,19 @@ class TestBlock(unittest.TestCase):
         self.assertEqual(spos.encode_block(t, block), a)
         self.assertEqual(spos.decode_block(a, block), t_dec)
 
+    def test_string_custom_alphabeth(self):
+        block = {
+            "name": "string",
+            "type": "string",
+            "settings": {"length": 6, "custom_alphabeth": {62: " "}},
+        }
+        t = "test"
+        a = "0b111110111110101101011110101100101101"
+        t_dec = "  test"
+        b = spos.encode_block(t, block)
+        self.assertEqual(spos.encode_block(t, block), a)
+        self.assertEqual(spos.decode_block(a, block), t_dec)
+
     def test_steps_block(self):
         block = {
             "name": "steps",
@@ -573,3 +586,68 @@ class TestBlock(unittest.TestCase):
         block = {"name": "crc HEX test", "type": "crc8"}
         self.assertEqual(spos.encode_block(t, block), a)
         self.assertEqual(spos.decode_block(b, block), True)
+
+
+class TestItems(unittest.TestCase):
+    def test_items(self):
+        items = [
+            {"name": "active", "type": "boolean"},
+            {"name": "s3cr37", "type": "binary", "settings": {"bits": 12}},
+            {"name": "timestamp", "type": "integer", "settings": {"bits": 32}},
+            {"name": "wind speed", "type": "float", "settings": {"bits": 7},},
+            {"name": "pad", "type": "pad", "settings": {"bits": 7},},
+            # {
+            #     "name": "counts",
+            #     "type": "array",
+            #     "settings": {
+            #         "bits": 7,
+            #         "blocks": {
+            #             "name": "count",
+            #             "type": "integer",
+            #             "settings": {"bits": 5},
+            #         },
+            #     },
+            # },
+            {
+                "name": "sensor X",
+                "type": "object",
+                "settings": {
+                    "items": [
+                        {"name": "value Y", "type": "integer", "settings": {"bits": 6}},
+                        {"name": "value Z", "type": "float", "settings": {"bits": 6}},
+                    ]
+                },
+            },
+            {"name": "user input", "type": "string", "settings": {"length": 7}},
+            {
+                "name": "bird sightings",
+                "type": "steps",
+                "settings": {
+                    "steps": [0, 5, 10, 15, 20],
+                    "steps_names": ["Bogey", "Par", "Birdie", "Eagle", "Albatross", "Condor"]
+                    },
+            },
+            {
+                "name": "battery",
+                "type": "categories",
+                "settings": {"categories": ["critical", "low", "charged", "full"],},
+            },
+        ]
+        values = [
+            True,
+            "0b1011111011101111",
+            1584042831,
+            0.7,
+            None,
+            {"value Y": 10, "value Z": 0.3},
+            # [2, 0, 6, 7, 1, 6, 8, 8, 15, 18, 19, 24, 25],
+            "burguer",
+            1337,
+            "charged",
+        ]
+        encoded = spos.encode_items(values, items)
+        print(encoded)
+        decoded = spos.decode_items(encoded, items)
+        print(decoded)
+        # self.assertEqual(spos.encode_items(values, items), a)
+        # self.assertEqual(spos.decode_block(b, block), True)

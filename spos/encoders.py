@@ -98,11 +98,18 @@ def encode_string(value, block, rev_alphabeth):
     Encodes an object value according to block specifications.
     """
     message = "0b"
-    value = (" " * (block["settings"]["length"] - len(value)) + value).replace(" ", "+")
-    block = {"type": "integer", "settings": {"bits": 6, "offset": 0}}
+    value = " " * (block["settings"]["length"] - len(value)) + value
+    integer_block = {"type": "integer", "settings": {"bits": 6, "offset": 0}}
+    custom_alphabeth = block["settings"]["custom_alphabeth"]
+    rev_custom_alphabeth = {
+        val: key for key, val in block["settings"]["custom_alphabeth"].items()
+    }
+    rev_space_map = {" ": 62}  # Maps spaces to +
     for letter in value:
-        val = rev_alphabeth.get(letter, 63)
-        message += encode_integer(val, block)[2:]
+        val = rev_custom_alphabeth.get(
+            letter, rev_space_map.get(letter, rev_alphabeth.get(letter, 63))
+        )
+        message += encode_integer(val, integer_block)[2:]
     return message
 
 
@@ -122,10 +129,10 @@ def encode_categories(value, block):
     Encodes a categories value according to block specifications.
     """
     categories = block["settings"]["categories"] + ["error"]
-    length = ([2 ** i >= len(categories) for i in range(7)] + [True]).index(True)
+    bits = ([2 ** i >= len(categories) for i in range(7)] + [True]).index(True)
     value = value if value in categories else "error"
     value = categories.index(value)
-    block = {"type": "integer", "settings": {"bits": length, "offset": 0}}
+    block = {"type": "integer", "settings": {"bits": bits, "offset": 0}}
     return encode_integer(value, block)
 
 

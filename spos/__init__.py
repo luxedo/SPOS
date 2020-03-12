@@ -18,12 +18,6 @@ from string import ascii_uppercase, ascii_lowercase, digits
 from . import encoders, decoders, validators
 
 
-BASE64_ALPHABETH = {
-    idx: val
-    for idx, val in enumerate(ascii_uppercase + ascii_lowercase + digits + "+/")
-}
-BASE64_REV_ALPHABETH = {val: key for key, val in BASE64_ALPHABETH.items()}
-
 TYPES_SETTINGS = {
     "boolean": {},
     "binary": {"required": {"bits": int}},
@@ -55,7 +49,7 @@ TYPES_SETTINGS = {
         "optional": {"steps_names": {"type": list, "default": []}},
     },
     "categories": {"required": {"categories": list},},
-    "crc8": {"fixed": {"bits": 8},},
+    "crc8": {},
 }
 
 TYPES = {
@@ -130,6 +124,9 @@ TYPES = {
     },
 }
 
+BASE64_ALPHABETH = dict(enumerate(ascii_uppercase + ascii_lowercase + digits + "+/"))
+BASE64_REV_ALPHABETH = {val: key for key, val in BASE64_ALPHABETH.items()}
+
 
 def validate_block(block, parent="root"):
     """
@@ -187,7 +184,7 @@ def validate_block(block, parent="root"):
         if not isinstance(block["settings"][s_name], opts["type"]):
             raise TypeError(
                 "Block '{0}: {1}' optional setting '{2}' has wrong type '{3}' instead of '{4}'.".format(
-                    parent, name, s_name, type(block["settings"][s_name]), tp
+                    parent, name, s_name, type(block["settings"][s_name]), opts["type"]
                 )
             )
 
@@ -196,7 +193,7 @@ def validate_block(block, parent="root"):
         type_settings.get("required", {}).keys()
     )
     for key in block.get("settings", {}):
-        if key not in allowed_settings:
+        if key not in allowed_settings and key != "bits":
             raise KeyError(
                 "Block '{0}' settings has an unexpected key '{1}'.".format(
                     block["name"], key
@@ -218,7 +215,7 @@ def encode_block(value, block):
     validate_block(block)
     type_conf = TYPES[block["type"]]
     if "input" in type_conf:
-        validators.validate_type(value, type_conf["input"], block)
+        validators.validate_input(value, type_conf["input"], block)
     if "validator" in type_conf:
         type_conf["validator"](value, block)
     return type_conf["encoder"](value, block)
@@ -251,8 +248,18 @@ def encode_items(values, items):
 
     Returns:
         message (str): Binary string of the message.
+
+    Raises:
+        ValueError: If the length of value and items differ or if any
+            of the arrays is empty
     """
     message = "0b"
+    if len(values) != len(items):
+        raise ValueError("Arrays 'values' and 'items' differ.")
+    if len(values) == 0:
+        raise ValueError("Empty 'values' array")
+    if len(items) == 0:
+        raise ValueError("Empty 'items' array")
     for value, block in zip(values, items):
         message += encode_block(value, block)[2:]
     return message
@@ -270,46 +277,57 @@ def decode_items(message, items):
         values (list): The list of values for the blocks.
     """
     values = []
-    offset = 2
-    items = fill_bits_settings(message, items)
+    message = message[2:]
     for block in items:
-        bits = block["settings"]["bits"]
-        values.append(decode_block("0b" + message[offset : offset + bits], block))
-        offset += bits
+        bits = accumulate_bits(message, block)
+        values.append(decode_block("0b" + message[:bits], block))
+        message = message[bits:]
     return values
 
 
-def fill_bits_settings(message, items):
+def accumulate_bits(message, block):
     """
-    Fills the bits values for each block in items if
+    Calculates the bits of the first block according to message.
+
     Args:
         message (str): Binary string of the message.
-        items (list): A list of blocks.
+        block (dict): Block specifications
 
     Returns:
-        items (list): The list of blocks with the bits values filled.
+        bits (int): Number of bits in the block.
     """
-    items = copy.deepcopy(items)
-    for block in items:
-        block["settings"] = block.get("settings", {})
-        if block["type"] == "boolean":
-            block["settings"]["bits"] = 1
-        if block["type"] == "object":
-            block["settings"]["bits"] = 0
-            block["settings"]["items"] = fill_bits_settings(
-                message, block["settings"]["items"]
-            )
-    return items
+    acc = 0
+    if "bits" in block.get("settings", {}):
+        acc += block["settings"]["bits"]
+    if block["type"] == "boolean":
+        acc = 1
+    elif block["type"] == "string":
+        acc += block["settings"]["length"] * 6
+    elif block["type"] == "array":
+        bits = block["settings"]["bits"]
+        length = decoders.decode_integer(
+            message[:bits], {"settings": {"bits": bits, "offset": 0}}
+        )
+        acc += bits + length * accumulate_bits(
+            message[:bits], block["settings"]["blocks"]
+        )
 
-    ## Adds fixed parameters
-    # for s_name, val in type_settings.get("fixed", {}).items():
-    #    if "settingsg" not in block:
-    #        block["settings"] = {}
-    #    block["settings"][s_name] = val
+    elif block["type"] == "object":
+        for b in block["settings"]["items"]:
+            bits = accumulate_bits(message, b)
+            message = message[bits:]
+            acc += bits
+    elif block["type"] == "steps":
+        bits = (
+            [2 ** i >= (len(block["settings"]["steps_names"])) for i in range(7)]
+            + [True]
+        ).index(True)
+        acc += bits
 
-    # if "bits" in block.get("settings", {}):
-    #     acc += block["settings"]["bits"]
-    # if block["type"] == "object":
-    #     for b in block["settings"]["items"]:
-    #         acc += accumulate_bits(message, b)
-    # return acc
+    elif block["type"] == "categories":
+        bits = (
+            [2 ** i >= (len(block["settings"]["categories"]) + 1) for i in range(7)]
+            + [True]
+        ).index(True)
+        acc += bits
+    return acc

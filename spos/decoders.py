@@ -15,6 +15,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 from .encoders import truncate_bits, encode_crc8
 
+
 def decode_boolean(message, block):
     """
     Decodes a boolean value according to block specifications.
@@ -101,8 +102,11 @@ def decode_string(message, block, alphabeth, decode_items):
         "name": "letter",
         "settings": {"bits": 6, "offset": 0},
     }
+    custom_alphabeth = block["settings"]["custom_alphabeth"]
     items = [integer_block for _ in range(block["settings"]["length"])]
-    value = "".join([alphabeth[i] for i in decode_items(message, items)])
+    value = "".join(
+        [custom_alphabeth.get(i, alphabeth[i]) for i in decode_items(message, items)]
+    )
     return value
 
 
@@ -126,19 +130,20 @@ def decode_categories(message, block):
     Decodes a categories value according to block specifications.
     """
     categories = block["settings"]["categories"] + ["error"]
-    length = ([2 ** i >= len(categories) for i in range(7)] + [True]).index(True)
+    bits = ([2 ** i >= len(categories) for i in range(7)] + [True]).index(True)
     integer_block = {
         "type": "integer",
-        "settings": {"bits": length, "offset": 0},
+        "settings": {"bits": bits, "offset": 0},
     }
     value = decode_integer(message, integer_block)
     return categories[value]
+
 
 def decode_crc8(message, block):
     """
     Decodes a crc value according to block specifications.
     """
-    crc_dec = '0b' + message[-8:]
+    crc_dec = "0b" + message[-8:]
     message = message[:-8]
     crc_enc = encode_crc8(message, block)
     return crc_dec == crc_enc

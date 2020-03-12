@@ -15,9 +15,9 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
 
-def validate_type(value, v_type, block):
+def validate_input(value, v_type, block):
     """
-    Validates the correct type for the block value.
+    Validates the correct type for block input.
     """
     if not isinstance(value, v_type):
         raise TypeError(
@@ -39,18 +39,20 @@ def validate_binary(value, block):
         )
 
 
-def validate_crc8(value, name):
+def validate_crc8(value, block):
     """
     Validates a binary block.
     """
-    validate_binary(value, name)
+    validate_binary(value, block)
     if value.startswith("0b") and not (len(value[2:]) % 8 == 0):
         raise ValueError(
             "Binary string '{0}' must have an 8-multiple number of characters (bits)".format(
-                name
+                block["name"]
             )
         )
     elif value.startswith("0x") and not (len(value[2:]) % 2 == 0):
         raise ValueError(
-            "Hex string '{0}' must have a pair number of characters".format(name)
+            "Hex string '{0}' must have a pair number of characters".format(
+                block["name"]
+            )
         )
