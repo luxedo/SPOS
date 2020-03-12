@@ -68,6 +68,11 @@ TYPES = {
             },
         },
     },
+    "crc8": {
+        "validator": validators.validate_message,
+        "encoder": encoders.encode_crc,
+        "decoder": decoders.decode_crc,
+    }
 }
 
 

@@ -14,6 +14,7 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 import math
+import crc8
 
 from . import utils
 
@@ -87,5 +88,25 @@ def encode_array(value, block):
     bit_str = bin(approx(min([max([value, 0]), overflow])))
     return utils.truncate_bits(bit_str, bits)
 
+def encode_crc(value, block):  ## message validation: validate.binary()
+    """
+    Creates an 8-bit CRC of the message.
+
+    Args:
+        message (str): Message string, in BIN ("0b...") or HEX ("0x...") format
+
+    Return:
+        crc8 (bin str): 8-bit CRC
+    """
+
+    if value.startswith("0x"):
+        value = bytes.fromhex(value[2:])
+    else:
+        value = bytes.fromhex(hex(int(value, 2))[2:])
+    hasher = crc8.crc8()
+    hasher.update(value)
+    crc = bin(int(hasher.hexdigest(), 16))
+    crc = '0b' + '{0:0>8}'.format(crc[2:])
+    return crc
 
 

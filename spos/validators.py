@@ -79,3 +79,29 @@ def validate_array(value, name):
                 name, type(value)
             )
         )
+
+
+def validate_message(value, name):
+    """
+    Validates a binary block.
+    """
+    if not isinstance(value, str):
+        raise TypeError(
+            "Value for block '{0}' must be a string, not '{1}.'".format(
+                name, type(value)
+            )
+        )
+    if not (value.startswith("0b") or value.startswith("0x")):
+        raise TypeError(
+            "Value for block '{0}' must be a binary string or an hex string.".format(
+                name
+            )
+        )
+    if value.startswith("0b") and not (len(value[2:]) % 8 == 0):
+        raise ValueError(
+            "Binary string '{0}' must have an 8-multiple number of characters (bits)".format(name)
+            )
+    elif value.startswith("0x") and not (len(value[2:]) % 2 == 0):
+        raise ValueError("Hex string '{0}' must have a pair number of characters".format(name)
+            )
+

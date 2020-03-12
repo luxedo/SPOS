@@ -235,3 +235,18 @@ class TestBlock(unittest.TestCase):
         block = {"name": "pad test", "type": "pad", "settings": {"bits": 6}}
         self.assertEqual(spos.encode_block(t, block), a)
         self.assertEqual(spos.decode_block(a, block), t)
+        
+    def test_crc(self):
+        t = '0b1011110010110010'
+        a = '0b10100100'
+        b = '0b101111001011001010100100'
+        block = {"name": "crc BIN test", "type": "crc8"}
+        self.assertEqual(spos.encode_block(t, block), a)
+        self.assertEqual(spos.decode_block(b, block), True)
+
+        t = '0xABCD35'
+        a = '0b00101011'
+        b = '0b10101011110011010011010100101011'
+        block = {"name": "crc HEX test", "type": "crc8"}
+        self.assertEqual(spos.encode_block(t, block), a)
+        self.assertEqual(spos.decode_block(b, block), True)

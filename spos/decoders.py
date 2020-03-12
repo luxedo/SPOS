@@ -14,6 +14,7 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 from . import utils
+from .encoders import encode_crc
 
 def decode_boolean(message, block):
     """
@@ -58,3 +59,9 @@ def decode_array(message, block):
     delta = upper - lower
     overflow = 2 ** bits - 1
     return int(message, 2) * delta / overflow + lower
+
+def decode_crc(message, block):
+    crc_dec = '0b' + message[-8:]
+    message = message[:-8]
+    crc_enc = encode_crc(message, block)
+    return crc_dec == crc_dec
