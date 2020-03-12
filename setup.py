@@ -15,4 +15,5 @@ setuptools.setup(
     packages=setuptools.find_packages(),
     # packages=["payload", "serializer", "LoRa", "Globalstar"],
     python_requires=">=3.6",
+    install_requires=["crc8==0.1.0"]
 )
