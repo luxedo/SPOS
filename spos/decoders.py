@@ -143,7 +143,8 @@ def decode_crc8(message, block):
     """
     Decodes a crc value according to block specifications.
     """
-    crc_dec = "0b" + message[-8:]
-    message = message[:-8]
-    crc_enc = encode_crc8(message, block)
-    return crc_dec == crc_enc
+#    crc_dec = "0b" + message[-8:]
+#    message = message[:-8]
+#    crc_enc = encode_crc8(message, block)
+#    return crc_dec == crc_enc
+    pass
