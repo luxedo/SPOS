@@ -18,28 +18,43 @@ from spos.encoders import truncate_bits
 import spos
 
 
-class TestBlock(unittest.TestCase):
+class SposTestCase(unittest.TestCase):
     def assertClose(self, val1, val2, delta=0.01, error_msg=""):
         error_msg = (
             error_msg if error_msg else "Values {0} - {1} differ.".format(val1, val2)
         )
         self.assertTrue(abs(val1 - val2) < delta, error_msg)
 
+    def assertArray(self, arr1, arr2, delta=0.01, error_msg=""):
+        error_msg = (
+            error_msg if error_msg else "Arrays differ:\n{0}\n{1}".format(arr1, arr2)
+        )
+        self.assertEqual(len(arr1), len(arr2), error_msg)
+        for i, _ in enumerate(arr1):
+            if isinstance(arr1[i], float) or isinstance(arr2[i], float):
+                self.assertClose(arr1[i], arr2[i], delta, error_msg)
+            elif isinstance(arr1[i], dict):
+                self.assertDict(arr1[i], arr2[i], delta, error_msg)
+            else:
+                self.assertEqual(arr1[i], arr2[i], error_msg)
+
     def assertDict(self, dict1, dict2, delta=0.01, error_msg=""):
-        self.assertEqual(dict1.keys(), dict2.keys())
+        error_msg = (
+            error_msg if error_msg else "Dicts differ:\n{0}\n{1}".format(dict1, dict2)
+        )
+        self.assertEqual(dict1.keys(), dict2.keys(), error_msg)
         for key in dict1:
-            error_msg = (
-                error_msg
-                if error_msg
-                else "Dicts differ:\n{0}\n{1}".format(dict1, dict2)
-            )
-            if isinstance(dict2[key], float):
+            if isinstance(dict1[key], float) or isinstance(dict2[key], float):
                 self.assertClose(dict1[key], dict2[key], delta, error_msg)
             elif isinstance(dict2[key], dict):
                 self.assertDict(dict1[key], dict2[key], delta, error_msg)
+            elif isinstance(dict2[key], list):
+                self.assertArray(dict1[key], dict2[key], delta, error_msg)
             else:
                 self.assertEqual(dict1[key], dict2[key], error_msg)
 
+
+class TestBlock(SposTestCase):
     def test_boolean_true(self):
         block = {"name": "boolean encode true", "type": "boolean"}
         t = True
@@ -511,6 +526,29 @@ class TestBlock(unittest.TestCase):
         self.assertEqual(spos.encode_block(t, block), a)
         self.assertEqual(spos.decode_block(a, block), t_dec)
 
+    def test_steps_auto_steps_names(self):
+        block = {
+            "name": "steps",
+            "type": "steps",
+            "settings": {"steps": [0, 5, 10],},
+        }
+        t = 1
+        a = "0b01"
+        t_dec = "0<x<=5"
+        self.assertEqual(spos.encode_block(t, block), a)
+        self.assertEqual(spos.decode_block(a, block), t_dec)
+
+    def test_steps_error_steps_names(self):
+        with self.assertRaises(ValueError):
+            block = {
+                "name": "steps",
+                "type": "steps",
+                "settings": {"steps": [0, 5, 10], "steps_names": ["one", "two"]},
+            }
+            t = 1
+            encoded = spos.encode_block(t, block)
+            spos.decode_block(encoded, block)
+
     def test_categories_block_0(self):
         block = {
             "name": "categories",
@@ -588,7 +626,7 @@ class TestBlock(unittest.TestCase):
         self.assertEqual(spos.decode_block(b, block), True)
 
 
-class TestItems(unittest.TestCase):
+class TestItems(SposTestCase):
     def test_items(self):
         items = [
             {"name": "active", "type": "boolean"},
@@ -624,8 +662,15 @@ class TestItems(unittest.TestCase):
                 "type": "steps",
                 "settings": {
                     "steps": [0, 5, 10, 15, 20],
-                    "steps_names": ["Bogey", "Par", "Birdie", "Eagle", "Albatross", "Condor"]
-                    },
+                    "steps_names": [
+                        "Bogey",
+                        "Par",
+                        "Birdie",
+                        "Eagle",
+                        "Albatross",
+                        "Condor",
+                    ],
+                },
             },
             {
                 "name": "battery",
@@ -645,9 +690,334 @@ class TestItems(unittest.TestCase):
             1337,
             "charged",
         ]
+        a = [
+            "0b1",
+            "0b101111101110",
+            "0b01011110011010101001001101001111",
+            "0b1011001",
+            "0b1111111",
+            "0b001010010011",
+            "0b011011101110101011100000101110011110101011",
+            "0b101",
+            "0b010",
+        ]
+        values_dec = [
+            True,
+            "0b101111101110",
+            1584042831,
+            0.7007874015748031,
+            None,
+            {"value Y": 10, "value Z": 0.30158730158730157},
+            "burguer",
+            "Condor",
+            "charged",
+        ]
         encoded = spos.encode_items(values, items)
-        print(encoded)
-        decoded = spos.decode_items(encoded, items)
-        print(decoded)
-        # self.assertEqual(spos.encode_items(values, items), a)
-        # self.assertEqual(spos.decode_block(b, block), True)
+        self.assertArray(encoded, a)
+        decoded = spos.decode_items(a, items)
+        self.assertArray(decoded, values_dec)
+
+
+class TestEncodeDecode(SposTestCase):
+    def test_encode_decode_0(self):
+        payload_data = {"holy": "grail", "buffer": [1, 2, 3, 4], "date": 0.98}
+        payload_spec = {
+            "name": "test encode",
+            "version": 1,
+            "items": [
+                {
+                    "name": "holy",
+                    "type": "string",
+                    "key": "holy",
+                    "settings": {"length": 10},
+                },
+                {
+                    "name": "version",
+                    "type": "integer",
+                    "value": 1,
+                    "settings": {"bits": 6},
+                },
+                {
+                    "name": "buffer",
+                    "type": "array",
+                    "key": "buffer",
+                    "settings": {
+                        "bits": 8,
+                        "blocks": {
+                            "name": "buf_val",
+                            "type": "integer",
+                            "settings": {"bits": 8},
+                        },
+                    },
+                },
+                {
+                    "name": "date",
+                    "type": "float",
+                    "key": "date",
+                    "settings": {"bits": 6},
+                },
+                {"name": "crc", "type": "crc8"},
+            ],
+        }
+        encoded = "0b111110111110111110111110111110100000101011011010100010100101000001000001000000000100000010000000110000010011111010000100"
+        decoded = {
+            "holy": "+++++grail",
+            "version": 1,
+            "buffer": [1, 2, 3, 4],
+            "date": 0.98,
+            "crc": True,
+        }
+        enc = spos.encode(payload_data, payload_spec)
+        self.assertEqual(enc, encoded)
+        dec = spos.decode(encoded, payload_spec)
+        self.assertDict(dec, decoded)
+
+    def test_encode_decode_1(self):
+        payloads = [
+            {
+                "sent_yesterday": 0,
+                "rpi_temperature": 25,
+                "voltage": 8,
+                "temperature": 23.3,
+                "count_arm": 3,
+                "count_eri": 5,
+                "count_cos": 10,
+                "count_fru": 15,
+                "count_sac": 20,
+            },
+            {
+                "sent_yesterday": 1,
+                "rpi_temperature": 35,
+                "voltage": 11.9,
+                "temperature": 27.3,
+                "count_arm": 10,
+                "count_eri": 6,
+                "count_cos": 12,
+                "count_fru": 18,
+                "count_sac": 24,
+            },
+            {
+                "sent_yesterday": 0,
+                "rpi_temperature": 51,
+                "voltage": 12.5,
+                "temperature": 11.8,
+                "count_arm": 5,
+                "count_eri": 20,
+                "count_cos": 6,
+                "count_fru": 7,
+                "count_sac": 14,
+            },
+            {
+                "sent_yesterday": 1,
+                "rpi_temperature": 77,
+                "voltage": 14.1,
+                "temperature": 34.5,
+                "count_arm": 60,
+                "count_eri": 8,
+                "count_cos": 16,
+                "count_fru": 24,
+                "count_sac": 32,
+            },
+            {
+                "sent_yesterday": 0,
+                "rpi_temperature": 55,
+                "voltage": 4.5,
+                "temperature": 24.5,
+                "count_arm": 11,
+                "count_eri": 5,
+                "count_cos": 40,
+                "count_fru": 3,
+                "count_sac": 9,
+            },
+        ]
+
+        payload_spec = {
+            "name": "test payload 2",
+            "version": 2,
+            "items": [
+                {"name": "pad", "type": "pad", "settings": {"bits": 5}},
+                {
+                    "name": "msg_version",
+                    "type": "integer",
+                    "value": 2,
+                    "settings": {"bits": 6},
+                },
+                {"name": "sent_yesterday", "type": "boolean", "key": "sent_yesterday"},
+                {
+                    "name": "rpi_temperature",
+                    "type": "steps",
+                    "key": "rpi_temperature",
+                    "settings": {
+                        "steps": [30, 50, 75],
+                        "steps_names": ["T<30", "30<T<50", "50<T<75", "T>75"],
+                    },
+                },
+                {
+                    "name": "voltage",
+                    "type": "float",
+                    "key": "voltage",
+                    "settings": {"bits": 6, "lower": 10, "upper": 13},
+                },
+                {
+                    "name": "temperature",
+                    "type": "float",
+                    "key": "temperature",
+                    "settings": {"bits": 6, "lower": 5, "upper": 50},
+                },
+                {
+                    "name": "count_arm",
+                    "type": "integer",
+                    "key": "count_arm",
+                    "settings": {"bits": 6},
+                },
+                {
+                    "name": "count_eri",
+                    "type": "integer",
+                    "key": "count_eri",
+                    "settings": {"bits": 6},
+                },
+                {
+                    "name": "count_cos",
+                    "type": "integer",
+                    "key": "count_cos",
+                    "settings": {"bits": 6},
+                },
+                {
+                    "name": "count_fru",
+                    "type": "integer",
+                    "key": "count_fru",
+                    "settings": {"bits": 6},
+                },
+                {
+                    "name": "count_sac",
+                    "type": "integer",
+                    "key": "count_sac",
+                    "settings": {"bits": 6},
+                },
+                {"name": "crc8", "type": "crc8"},
+            ],
+        }
+
+        for payload_data in payloads:
+            enc = spos.encode(payload_data, payload_spec)
+            dec = spos.decode(enc, payload_spec)
+            payload_data["sent_yesterday"] = bool(payload_data["sent_yesterday"])
+            payload_data["crc8"] = True
+            payload_data["msg_version"] = 2
+            if payload_data["voltage"] < 10:  # There's an underflow in the data
+                payload_data["voltage"] = 10
+            del dec["rpi_temperature"], payload_data["rpi_temperature"]
+            self.assertDict(dec, payload_data, 3)
+
+    def test_encode_decode_2(self):
+        payloads = [
+            {
+                "confidences": [0.9, 0.8, 0.7],
+                "categories": ["bike", "bike", "scooter"],
+                "timestamp": 1234567890,
+                "voltage": 12,
+                "temperature": 45,
+            }
+        ]
+        payload_spec = {
+            "items": [
+                {
+                    "name": "confidences",
+                    "type": "array",
+                    "key": "confidences",
+                    "settings": {
+                        "bits": 8,
+                        "blocks": {
+                            "name": "confidence",
+                            "type": "float",
+                            "settings": {"bits": 4},
+                        },
+                    },
+                },
+                {
+                    "name": "categories",
+                    "type": "array",
+                    "key": "categories",
+                    "settings": {
+                        "bits": 8,
+                        "blocks": {
+                            "name": "category",
+                            "type": "categories",
+                            "settings": {"categories": ["bike", "skate", "scooter"]},
+                        },
+                    },
+                },
+                {
+                    "name": "msg_version",
+                    "type": "integer",
+                    "value": 1,
+                    "settings": {"bits": 6},
+                },
+                {
+                    "name": "timestamp",
+                    "type": "integer",
+                    "key": "timestamp",
+                    "settings": {"bits": 32},
+                },
+                {
+                    "name": "voltage",
+                    "type": "float",
+                    "key": "voltage",
+                    "settings": {"bits": 8, "lower": 10, "upper": 13},
+                },
+                {
+                    "name": "temperature",
+                    "type": "float",
+                    "key": "temperature",
+                    "settings": {"bits": 8, "lower": 5, "upper": 50},
+                },
+            ]
+        }
+        for payload_data in payloads:
+            enc = spos.encode(payload_data, payload_spec)
+            dec = spos.decode(enc, payload_spec)
+            payload_data["msg_version"] = 1
+            self.assertDict(dec, payload_data, 3)
+
+    def test_hex_encode_decode_0(self):
+        payload_data = {"holy": "grail", "buffer": [1, 2], "date": 0.98}
+        payload_spec = {
+            "name": "test encode",
+            "version": 1,
+            "items": [
+                {
+                    "name": "holy",
+                    "type": "string",
+                    "key": "holy",
+                    "settings": {"length": 11},
+                },
+                {
+                    "name": "buffer",
+                    "type": "array",
+                    "key": "buffer",
+                    "settings": {
+                        "bits": 8,
+                        "blocks": {
+                            "name": "buf_val",
+                            "type": "integer",
+                            "settings": {"bits": 9},
+                        },
+                    },
+                },
+                {
+                    "name": "date",
+                    "type": "float",
+                    "key": "date",
+                    "settings": {"bits": 7},
+                },
+            ],
+        }
+        encoded = "0b111110111110111110111110111110100000101011011010100010100101000001000001000000000100000010000000110000010011111010000100"
+        decoded = {
+            "holy": "++++++grail",
+            "buffer": [1, 2],
+            "date": 0.98,
+        }
+        enc = spos.hex_encode(payload_data, payload_spec)
+        dec = spos.hex_decode(enc, payload_spec)
+        self.assertDict(dec, decoded)

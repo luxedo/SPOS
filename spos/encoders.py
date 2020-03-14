@@ -80,7 +80,8 @@ def encode_array(value, block, encode_block, encode_items):
     items = [
         block["settings"]["blocks"].copy() for _, v in zip(range(max_length), value)
     ]
-    message += encode_items(value, items)[2:]
+    if len(value) > 0:
+        message += "".join([msg[2:] for msg in encode_items(value[:max_length], items)])
     return message
 
 
@@ -90,7 +91,7 @@ def encode_object(value, block, encode_items):
     """
     items = block["settings"]["items"]
     values = [value[item["name"]] for item in items]
-    return encode_items(values, items)
+    return "0b" + "".join([msg[2:] for msg in encode_items(values, items)])
 
 
 def encode_string(value, block, rev_alphabeth):

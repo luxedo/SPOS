@@ -1,0 +1,30 @@
+{
+  "name": "test payload",
+  "version": 2,
+  "items": [
+    {
+      "name": "important",
+      "type": "integer",
+      "key": "important data",
+      "settings": {
+        "bits": 8
+      }
+    },
+    {
+      "name": "not important",
+      "type": "float",
+      "key": "not so important",
+      "settings": {
+        "bits": 12
+      }
+    },
+    {
+      "name": "cute",
+      "type": "categories",
+      "key": "danger",
+      "settings": {
+        "categories": ["terror", "aliens", "bunny"]
+      }
+    }
+  ]
+}

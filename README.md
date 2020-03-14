@@ -6,7 +6,8 @@
 maintaining a consistent payload size while sacrificing precision.
 Applications with limited bandwidth like [LoRa](https://lora-alliance.org/)
 or [Globalstar](https://www.globalstar.com/en-us/) are ideal candidates
-for `SPOS`.
+for `SPOS`. Spos is built as a library for `python3` and a command line
+tool.
 
 ## Quick Start
 
@@ -45,7 +46,7 @@ payload_data = {
 }
 
 message = spos.encode(payload_data, payload_spec)
-"0b010011010010011
+"0b01001101010011"
 ```
 
 Decoding data
@@ -77,7 +78,7 @@ payload_spec = {
       "bits": 6
     }
 }]
-message = "0b010011010010011"
+message = "0b01001101010011"
 payload_data = spos.decode(message, payload_spec)
 {
   "payload_version": 1,
@@ -120,17 +121,6 @@ Message name
 
 Message version
 
-#### `defaults` (object)
-
-Overrides default `settings` for the `blocks`. `settings` declared
-inside the `block` takes precedence over the defaults.
-
-##### keys:
-
-- `offset`
-- `lower`
-- `upper`
-- `custom_alphabeth`
 
 ## Block Specification
 
@@ -349,23 +339,22 @@ Settings:
 Calculates the [CRC8](https://en.wikipedia.org/wiki/Cyclic_redundancy_check)
 for the message. The size in bits for this `block` is always 8.
 
-Settings: `None`.
+Settings:
 
 ## Command line usage
 
 ```python
 # Encode data
-cat payload_data | spos payload_spec.json
+cat payload_data | spos -p payload_spec.json
 
 # Decode data
-cat message | spos -d payload_spec.json
+cat message | spos -d -p payload_spec.json
 ```
 
-## Language Support
-
-`SPOS` is built with Python3 as a library and a command.
 ## Contributors
+
 - [Arthur Lindemute](https://github.com/arthurlindemute)
+
 
 ## License
 

@@ -85,7 +85,7 @@ TYPES = {
             value, block, encode_block, encode_items
         ),
         "decoder": lambda message, block: decoders.decode_array(
-            message, block, decode_block
+            message, block, decode_block, decode_message
         ),
     },
     "object": {
@@ -94,7 +94,7 @@ TYPES = {
             value, block, encode_items
         ),
         "decoder": lambda message, block: decoders.decode_object(
-            message, block, decode_items
+            message, block, decode_message
         ),
     },
     "string": {
@@ -103,7 +103,7 @@ TYPES = {
             value, block, BASE64_REV_ALPHABETH
         ),
         "decoder": lambda value, block: decoders.decode_string(
-            value, block, BASE64_ALPHABETH, decode_items
+            value, block, BASE64_ALPHABETH, decode_message
         ),
     },
     "steps": {
@@ -253,7 +253,7 @@ def encode_items(values, items):
         ValueError: If the length of value and items differ or if any
             of the arrays is empty
     """
-    message = "0b"
+    messages = []
     if len(values) != len(items):
         raise ValueError("Arrays 'values' and 'items' differ.")
     if len(values) == 0:
@@ -261,33 +261,77 @@ def encode_items(values, items):
     if len(items) == 0:
         raise ValueError("Empty 'items' array")
     for value, block in zip(values, items):
-        message += encode_block(value, block)[2:]
-    return message
+        messages.append(encode_block(value, block))
+    return messages
 
 
-def decode_items(message, items):
+def decode_items(messages, items):
     """
     Decodes list of blocks.
 
     Args:
-        message (str): Binary string of the message.
+        messages (list): The list of messages to decode
         items (list): A list of blocks.
 
     Returns:
         values (list): The list of values for the blocks.
     """
     values = []
+    acc_message = "0b"
+    if len(messages) != len(items):
+        raise ValueError("Arrays 'messages' and 'items' differ.")
+    if len(messages) == 0:
+        raise ValueError("Empty 'messages' array")
+    if len(items) == 0:
+        raise ValueError("Empty 'items' array")
+    for message, block in zip(messages, items):
+        acc_message += message[2:]
+        if block["type"] == "crc8":
+            values.append(decode_block(acc_message, block))
+        else:
+            values.append(decode_block(message, block))
+    return values
+
+
+def decode_message(message, items):
+    """
+    Decodes a concatenated message of multiple items.
+
+    Args:
+        message (str): Message to decode
+        items (list): A list of blocks.
+
+    Returns:
+        values (list): The list of values for the blocks.
+    """
+    messages = split_messages(message, items)
+    return decode_items(messages, items)
+
+
+def split_messages(message, items):
+    """
+    Receives a concatenated message and breaks it into a list of
+    messages according to items.
+
+    Args:
+        message (str): Binary string of the concatenated messages.
+        items (list): A list of blocks.
+
+    Returns:
+        messages (list): A list of binary strings.
+    """
+    messages = []
     message = message[2:]
     for block in items:
         bits = accumulate_bits(message, block)
-        values.append(decode_block("0b" + message[:bits], block))
+        messages.append("0b" + message[:bits])
         message = message[bits:]
-    return values
+    return messages
 
 
 def accumulate_bits(message, block):
     """
-    Calculates the bits of the first block according to message.
+    Calculates the bits of the block in the message.
 
     Args:
         message (str): Binary string of the message.
@@ -301,6 +345,8 @@ def accumulate_bits(message, block):
         acc += block["settings"]["bits"]
     if block["type"] == "boolean":
         acc = 1
+    elif block["type"] == "crc8":
+        acc = 8
     elif block["type"] == "string":
         acc += block["settings"]["length"] * 6
     elif block["type"] == "array":
@@ -308,10 +354,7 @@ def accumulate_bits(message, block):
         length = decoders.decode_integer(
             message[:bits], {"settings": {"bits": bits, "offset": 0}}
         )
-        acc += bits + length * accumulate_bits(
-            message[:bits], block["settings"]["blocks"]
-        )
-
+        acc += length * accumulate_bits(message[:bits], block["settings"]["blocks"])
     elif block["type"] == "object":
         for b in block["settings"]["items"]:
             bits = accumulate_bits(message, b)
@@ -323,7 +366,6 @@ def accumulate_bits(message, block):
             + [True]
         ).index(True)
         acc += bits
-
     elif block["type"] == "categories":
         bits = (
             [2 ** i >= (len(block["settings"]["categories"]) + 1) for i in range(7)]
@@ -331,3 +373,100 @@ def accumulate_bits(message, block):
         ).index(True)
         acc += bits
     return acc
+
+
+def encode(payload_data, payload_spec):
+    """
+    Encodes a message from payload_data according to payload_spec.
+    Returns the message as a binary string.
+
+    Args:
+        payload_data (dict): The list of values to encode.
+        payload_spec (dict): Payload specifications.
+
+    Returns:
+        message (str): Binary string of the message.
+    """
+    values = []
+    for block in payload_spec["items"]:
+        if block["type"] in ["crc8", "pad"]:
+            values.append("0xff")
+            continue
+        if "key" in block and "value" in block:
+            raise KeyError(
+                "Block '{0}' must have only one key or value, not both.".format(block)
+            )
+        if "key" not in block and "value" not in block:
+            raise KeyError(
+                "Block '{0}' must have either key or value, not neither.".format(block)
+            )
+        if "value" in block:
+            values.append(block["value"])
+        else:
+            values.append(payload_data[block["key"]])
+
+    messages = encode_items(values, payload_spec["items"])
+    partial_msg = "0b"
+    for idx, block in enumerate(payload_spec["items"]):
+        if block["type"] == "crc8":
+            messages[idx] = encode_block(partial_msg, block)
+        partial_msg += messages[idx][2:]
+    return partial_msg
+
+
+def decode(message, payload_spec):
+    """
+    Decodes a binary message according to payload_spec.
+
+    Args:
+        message (str): Binary string of the message.
+        payload_spec (dict): Payload specifications.
+
+    Returns:
+        payload_data (dict): Payload data.
+    """
+    items = payload_spec["items"]
+    values = decode_message(message, items)
+    keys = [block["name"] for block in items]
+    payload_data = dict(zip(keys, values))
+    for key, block in zip(keys, items):
+        if block["type"] == "pad" and key in payload_data:
+            del payload_data[key]
+    return payload_data
+
+
+def hex_encode(payload_data, payload_spec):
+    """
+    Encodes a message from payload_data according to payload_spec.
+    Returns the message as an hex string.
+
+    Args:
+        payload_data (dict): The list of values to encode.
+        payload_spec (dict): Payload specifications.
+
+    Returns:
+        message (str): Binary string of the message.
+    """
+    message = encode(payload_data, payload_spec)
+    message = message[2:] + "0" * (8 - (len(message) - 2) % 8)
+    output = "0x"
+    for i in range(len(message) // 8):
+        output += "{0:02X}".format(int(message[8 * i : 8 * (i + 1)], 2))
+    return output
+
+
+def hex_decode(message, payload_spec):
+    """
+    Decodes an hex message according to payload_spec.
+
+    Args:
+        message (str): Hex string of the message.
+        payload_spec (dict): Payload specifications.
+
+    Returns:
+        payload_data (dict): Payload data.
+    """
+    bits = len(message[2:]) * 4
+    message = bin(int(message, 16))[2:]
+    message = "0b" + message.zfill(bits)
+    return decode(message, payload_spec)

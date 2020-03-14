@@ -49,7 +49,7 @@ def decode_float(message, block):
     return int(message, 2) * delta / overflow + lower
 
 
-def decode_array(message, block, decode_block):
+def decode_array(message, block, decode_block, decode_message):
     """
     Decodes an array value according to block specifications.
     """
@@ -62,38 +62,23 @@ def decode_array(message, block, decode_block):
     values = []
     if inner_block["type"] == "array":
         raise ValueError("Can't use a nested array.")
-    for i in range(length):
-        value_bits = inner_block["settings"]["bits"]
-        values.append(
-            decode_block(
-                message[
-                    length_bits
-                    + 2
-                    + i * value_bits : length_bits
-                    + 2
-                    + (i + 1) * value_bits
-                ],
-                {
-                    "name": "array lenght",
-                    "type": "integer",
-                    "settings": {"bits": value_bits},
-                },
-            )
-        )
-    return values
+    items = [inner_block for i in range(length)]
+    if length > 0:
+        return decode_message("0b" + message[length_bits + 2 :], items)
+    return []
 
 
-def decode_object(message, block, decode_items):
+def decode_object(message, block, decode_message):
     """
     Decodes an array value according to block specifications.
     """
     items = block["settings"]["items"]
     keys = [item["name"] for item in items]
-    values = decode_items(message, items)
+    values = decode_message(message, items)
     return dict(zip(keys, values))
 
 
-def decode_string(message, block, alphabeth, decode_items):
+def decode_string(message, block, alphabeth, decode_message):
     """
     Decodes a string value according to block specifications.
     """
@@ -105,7 +90,7 @@ def decode_string(message, block, alphabeth, decode_items):
     custom_alphabeth = block["settings"]["custom_alphabeth"]
     items = [integer_block for _ in range(block["settings"]["length"])]
     value = "".join(
-        [custom_alphabeth.get(i, alphabeth[i]) for i in decode_items(message, items)]
+        [custom_alphabeth.get(i, alphabeth[i]) for i in decode_message(message, items)]
     )
     return value
 
@@ -116,6 +101,18 @@ def decode_steps(message, block):
     """
     steps = block["settings"]["steps"]
     steps_names = block["settings"]["steps_names"]
+    if len(steps_names) == 0:
+        steps_names = (
+            ["x<{0}".format(steps[0])]
+            + ["{0}<x<={1}".format(l, u) for l, u in zip(steps, steps[1:])]
+            + ["x>={0}".format(steps[0])]
+        )
+    if len(steps_names) != len(steps) + 1:
+        raise ValueError(
+            "'steps_names' for block {0} has to have length 1 + len(steps).".format(
+                block["name"]
+            )
+        )
     length = ([2 ** i >= len(steps) for i in range(7)] + [True]).index(True)
     integer_block = {
         "type": "integer",
@@ -143,8 +140,7 @@ def decode_crc8(message, block):
     """
     Decodes a crc value according to block specifications.
     """
-#    crc_dec = "0b" + message[-8:]
-#    message = message[:-8]
-#    crc_enc = encode_crc8(message, block)
-#    return crc_dec == crc_enc
-    pass
+    crc_dec = "0b" + message[-8:]
+    message = message[:-8]
+    crc_enc = encode_crc8(message, block)
+    return crc_dec == crc_enc
