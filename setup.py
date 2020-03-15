@@ -32,4 +32,14 @@ setuptools.setup(
     scripts=["bin/spos"],
     python_requires=">=3.7",
     install_requires=["crc8==0.1.0"],
+    keywords="serializer LoRa Globalstar low-bandwidth",
+    classifiers=[
+        "Development Status :: 3 - Alpha",
+        "Intended Audience :: Developers",
+        "Topic :: Software Development :: Build Tools",
+        "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
+        "Operating System :: POSIX :: Linux",
+        "Programming Language :: Python :: 3.7",
+        "Programming Language :: Python :: 3.8",
+    ],
 )

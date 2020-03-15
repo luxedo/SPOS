@@ -1,8 +1,8 @@
 # SPOS
 
-![Tests](https://github.com/luxedo/SPOS/workflows/Python%20package/badge.svg) ![Build](https://github.com/luxedo/SPOS/workflows/Python%20publish/badge.svg)
-
 > **SPOS** stands for **Small Payload Object Serializer**.
+
+![Tests](https://github.com/luxedo/SPOS/workflows/Python%20package/badge.svg) ![Build](https://github.com/luxedo/SPOS/workflows/Python%20publish/badge.svg)
 
 `SPOS` is a tool for serializing objects. This tool focuses in
 maintaining a consistent payload size while sacrificing precision.
@@ -122,7 +122,6 @@ Message name
 #### `version`
 
 Message version
-
 
 ## Block Specification
 
@@ -356,7 +355,6 @@ cat message | spos -d -p payload_spec.json
 ## Contributors
 
 - [Arthur Lindemute](https://github.com/arthurlindemute)
-
 
 ## License
 
