@@ -23,7 +23,7 @@ setuptools.setup(
     version="1.0.0-alpha",
     description="SPOS stands for Small Payload Object Serializer",
     long_description=long_description,
-    long_description_conntent_type="text/markdown",
+    long_description_content_type="text/markdown",
     author="Luiz Eduardo Amaral",
     author_email="luizamaral306@gmail.com",
     url="https://github.com/luxedo/SPOS",

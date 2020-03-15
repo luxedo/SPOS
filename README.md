@@ -1,5 +1,7 @@
 # SPOS
 
+![Tests](https://github.com/luxedo/SPOS/workflows/Python%20package/badge.svg) ![Build](https://github.com/luxedo/SPOS/workflows/Python%20publish/badge.svg)
+
 > **SPOS** stands for **Small Payload Object Serializer**.
 
 `SPOS` is a tool for serializing objects. This tool focuses in
