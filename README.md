@@ -2,7 +2,7 @@
 
 > **SPOS** stands for **Small Payload Object Serializer**.
 
-[![codecov](https://codecov.io/gh/luxedo/spos/branch/master/graph/badge.svg)](https://codecov.io/gh/luxedo/spos)![Build](https://github.com/luxedo/SPOS/workflows/Python%20publish/badge.svg)[![CodeFactor](https://www.codefactor.io/repository/github/luxedo/spos/badge)](https://www.codefactor.io/repository/github/luxedo/spos)
+[![codecov](https://codecov.io/gh/luxedo/spos/branch/master/graph/badge.svg)](https://codecov.io/gh/luxedo/spos) [![CodeFactor](https://www.codefactor.io/repository/github/luxedo/spos/badge)](https://www.codefactor.io/repository/github/luxedo/spos) [![PyPI version](https://badge.fury.io/py/spos.svg)](https://badge.fury.io/py/spos) [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 
 `SPOS` is a tool for serializing objects. This tool focuses in
 maintaining a consistent payload size while sacrificing precision.
