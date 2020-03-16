@@ -1021,3 +1021,6 @@ class TestEncodeDecode(SposTestCase):
         enc = spos.hex_encode(payload_data, payload_spec)
         dec = spos.hex_decode(enc, payload_spec)
         self.assertDict(dec, decoded)
+
+if __name__ == "__main__":
+    unittest.main()

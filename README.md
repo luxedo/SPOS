@@ -2,7 +2,7 @@
 
 > **SPOS** stands for **Small Payload Object Serializer**.
 
-![Tests](https://github.com/luxedo/SPOS/workflows/Python%20package/badge.svg) ![Build](https://github.com/luxedo/SPOS/workflows/Python%20publish/badge.svg)
+[![codecov](https://codecov.io/gh/luxedo/spos/branch/master/graph/badge.svg)](https://codecov.io/gh/luxedo/spos)![Build](https://github.com/luxedo/SPOS/workflows/Python%20publish/badge.svg)[![CodeFactor](https://www.codefactor.io/repository/github/luxedo/spos/badge)](https://www.codefactor.io/repository/github/luxedo/spos)
 
 `SPOS` is a tool for serializing objects. This tool focuses in
 maintaining a consistent payload size while sacrificing precision.
@@ -88,6 +88,8 @@ payload_data = spos.decode(message, payload_spec)
   "float_data": 0.59375
 }
 ```
+
+## Functions
 
 ## Payload Specification
 
@@ -341,6 +343,67 @@ Calculates the [CRC8](https://en.wikipedia.org/wiki/Cyclic_redundancy_check)
 for the message. The size in bits for this `block` is always 8.
 
 Settings:
+
+## Functions
+
+```python
+def encode(payload_data, payload_spec):
+    """
+    Encodes a message from payload_data according to payload_spec.
+    Returns the message as a binary string.
+
+    Args:
+        payload_data (dict): The list of values to encode.
+        payload_spec (dict): Payload specifications.
+
+    Returns:
+        message (str): Binary string of the message.
+    """
+```
+
+```python
+def decode(message, payload_spec):
+    """
+    Decodes a binary message according to payload_spec.
+
+    Args:
+        message (str): Binary string of the message.
+        payload_spec (dict): Payload specifications.
+
+    Returns:
+        payload_data (dict): Payload data.
+    """
+```
+
+```python
+def hex_encode(payload_data, payload_spec):
+"""
+Encodes a message from payload_data according to payload_spec.
+Returns the message as an hex string.
+
+    Args:
+        payload_data (dict): The list of values to encode.
+        payload_spec (dict): Payload specifications.
+
+    Returns:
+        message (str): Binary string of the message.
+    """
+
+```
+
+```python
+def hex_decode(message, payload_spec):
+    """
+    Decodes an hex message according to payload_spec.
+
+    Args:
+        message (str): Hex string of the message.
+        payload_spec (dict): Payload specifications.
+
+    Returns:
+        payload_data (dict): Payload data.
+    """
+```
 
 ## Command line usage
 
