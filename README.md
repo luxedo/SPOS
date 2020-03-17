@@ -13,7 +13,8 @@ tool.
 
 ## Quick Start
 
-To encode data, `SPOS` needs two arguments to serialize the data: The `payload_data` to be serialized and the [payload specification](#Payload-Specification).
+To encode data, `SPOS` needs two arguments to serialize the data: The
+`payload_data` to be serialized and the [payload specification](#Payload-Specification).
 
 ```python
 import spos
@@ -24,23 +25,17 @@ payload_spec = {
     "type": "integer",
     "name": "payload_version",
     "value": 1,  # 01
-    "settings": {
-      "bits": 2
-    }
+    "bits": 2
   }, {
     "type": "integer",
     "name": "integer 1",
     "key": "int_data",
-    "settings": {
-      "bits": 6
-    }
+    "bits": 6
   }, {
     "type": "float",
     "name": "float 1",
     "key": "float_data",
-    "settings": {
-      "bits": 6
-    }
+    "bits": 6
 }]
 payload_data = {
   "int_data": 13,    # 001101
@@ -62,23 +57,17 @@ payload_spec = {
     "type": "integer",
     "name": "payload_version",
     "value": 1,  # 01
-    "settings": {
-      "bits": 2
-    }
+    "bits": 2
   }, {
     "type": "integer",
     "name": "integer 1",
     "key": "int_data",
-    "settings": {
-      "bits": 6
-    }
+    "bits": 6
   }, {
     "type": "float",
     "name": "float 1",
     "key": "float_data",
-    "settings": {
-      "bits": 6
-    }
+    "bits": 6
 }]
 message = "0b01001101010011"
 payload_data = spos.decode(message, payload_spec)
@@ -89,13 +78,11 @@ payload_data = spos.decode(message, payload_spec)
 }
 ```
 
-## Functions
-
 ## Payload Specification
 
 The payload specification must contain the key `items`, which must be
-an array containing objects that describe each `block` of the binary
-serialization.
+an array containing objects that describe each `block` of the
+serialized message.
 
 ```python
 payload_spec = {
@@ -103,10 +90,9 @@ payload_spec = {
     "type:": "integer",
     "name": "temperature",
     "key": "temp",
-    "settings": {
-      "bits": 6,
-      "offset": 273
-}}]}
+    "bits": 6,
+    "offset": 273
+}]}
 ```
 
 Additional keys can be provided and keys not listed are ignored.
@@ -125,10 +111,11 @@ Message name
 
 Message version
 
-## Block Specification
+## Block
 
-The required keys for `block` objects are: `type`, `name`,
-`key` or `value`, `bits`, and `settings`.
+The required keys for `block` objects are: `type`, `name`, `key` or
+`value`. For each `type` there might be aditional required keys and/or
+optional keys might .
 
 The value to be encoded is either a `key` in the `payload_data` object or
 a statuc `value`.
@@ -136,40 +123,39 @@ a statuc `value`.
 Additional `settings` may be required according to the chosen `type`.
 
 The encoded data is _big-endian_ and truncations occour in the least
-significant bits when applicable. Data overflow are set to the maximum
+significant bits when applicable. Data overflow is set to the maximum
 value and underflow to the minimum.
 
-### `name`
+### Block keys
+
+#### `name`
 
 The name of the `block`.
 
-### `key`
+#### `key`
 
 The key to get the value of the `block` in `payload_data`.
 
-### `value`
+#### `value`
 
 A static value of the `block`.
 
-### `settings`
+#### `type`
 
-Additional settings for each type.
-
-### `type`
-
-There are 11 types avaliable for serializing data:
-`boolean`, `binary`, `integer`, `float`, `pad`, `array`, `object`,
-`string`, `steps`, `categories`, and `crc8`.
+There are 11 types avaliable for serializing data: `boolean`, `binary`,
+`integer`, `float`, `pad`, `array`, `object`, `string`, `steps`,
+`categories`, and `crc8`.
 
 The basic types are:
 
-#### `boolean`
+##### `boolean`
 
 Boolean value.
 
-Settings: `None`.
+Input: `boolean`.
+Additional keys: `None`.
 
-#### `binary`
+##### `binary`
 
 Binary value. The data can be a binary string or an hex string. Eg
 
@@ -179,22 +165,24 @@ Binary value. The data can be a binary string or an hex string. Eg
 ```
 
 This data is truncated in the least significant bits if the size of
-the string is bigger than `bits`.
+the string in binary is bigger than `bits`.
 
-Settings:
+Input: `string`.
+Additional keys:
 
 - `bits` (int): length of the block in bits
 
-#### `integer`
+##### `integer`
 
 Integer value.
 
-Settings:
+Input: `integer`.
+Additional key:
 
 - `bits` (int): length of the block in bits
 - `offset` (int): An integer to offset the final value. Default: 0.
 
-#### `float`
+##### `float`
 
 Float value.
 
@@ -203,18 +191,20 @@ boundaries in equal parts according to the avaliable `bits`. The
 serialized value is the closest to the real one by default
 ("approximation": "round").
 
-Settings:
+Input: `int|float`.
+Additional keys:
 
 - `bits` (int): length of the block in bits
-- `lower` (int|float): Float lower boundary. Default 0.
-- `upper` (int|float): Float upper boundary. Default 1.
-- `approximation` (str): Float approximation method. Values can be: "round", "floor", "ceil". Default: "round"
+- `lower` (int|float), optional: Float lower boundary. Default 0.
+- `upper` (int|float), optional: Float upper boundary. Default 1.
+- `approximation` (str), optional: Float approximation method. Values can be: "round", "floor", "ceil". Default: "round"
 
-#### `pad`
+##### `pad`
 
 Pads the message. No data is collected from this block.
 
-Settings:
+Input: `None`.
+Additional keys:
 
 - `bits` (int): length of the block in bits
 
@@ -222,30 +212,31 @@ Settings:
 
 Advanced types:
 
-#### `array`
+##### `array`
 
-Array value with fixed length.
+An array containing `block` values.
 
 The size in bits of this type is `bits` + `length` \* `blocks` &rarr; `bits`.
 
-Settings:
+Input: An `array` of values allowed for `blocks`.
+Additional keys:
 
 - `bits` (int): Number of bits to store the maximum length of the array.
-- `blocks` (block): The `block` of the objects in the array.
+- `blocks` (block): The `block` specification of the objects in the array.
 
-#### `object`
+##### `object`
 
 Object value. Maps the data to an object.
 
 The size in bits of this type is the sum of sizes of blocks declared
 for this `block`.
 
-Settings:
+Input: `object`.
+Additional keys:
 
-- `items` (items): The `items` describing the object. The keys for
-  the object will be the value of `name` in each `block`.
+- `items` (items): The `array` of `blocks` describing the object.
 
-#### `string`
+##### `string`
 
 String value.
 
@@ -256,10 +247,11 @@ are replaced with `/` (index 62) and spaces are replaced with `+`
 
 The size in bits of this type is 6 \* `length`.
 
-Settings:
+Input: `string`.
+Additional keys:
 
-- `length` (int): String maximum length.
-- `custom_alphabeth` (object): Remaps the characters to another index.
+- `length` (int): Strings maximum length.
+- `custom_alphabeth` (object), optional: Remaps the characters to another index.
   eg: Adding support for a `json` string but sacrificing the first 7
   indexes (ABCDEFG).
 
@@ -269,17 +261,15 @@ payload_spec = {
     "type:": "string",
     "name": "text",
     "key": "text1",
-    "settings": {
-      "length": 128,
-      "custom_alphabeth": {
-        0: "{",
-        1: "}",
-        2: "[",
-        3: "]",
-        4: '"',
-        5: ',',
-        6: '.',
-      }
+    "length": 128,
+    "custom_alphabeth": {
+      0: "{",
+      1: "}",
+      2: "[",
+      3: "]",
+      4: '"',
+      5: ',',
+      6: '.',
     }
 }]
 
@@ -295,21 +285,21 @@ payload_spec = {
     "type:": "steps",
     "name": "battery",
     "key": "bat",
-    "settings": {
-      "steps": [0.1, 0.6, 0.95],
-      "steps_names": ["critical", "low", "discharging", "charged"]
-      # [-Inf, 0.1) critical, [0.1, 0.6) low, [0.6, 0.95) discharging, [0.95, Inf) charged
-}}]
+    "steps": [0.1, 0.6, 0.95],
+    "steps_names": ["critical", "low", "discharging", "charged"]
+    # [-Inf, 0.1) critical, [0.1, 0.6) low, [0.6, 0.95) discharging, [0.95, Inf) charged
+}]
 payload_data = {"bat": 0.3}  # low
 ```
 
 The number of bits for this type is the exponent of the next power of
 two of the length of `steps` + 1. In the example above it is 2 bits.
 
-Settings:
+Input: `int|float`.
+Additional keys:
 
 - `steps` (array): Array listing the boundaries of each step.
-- `steps_names` (array): Names for each step. If not provided the names
+- `steps_names` (array), optional: Names for each step. If not provided the names
   are created based on steps.
 
 #### `categories`
@@ -333,7 +323,8 @@ two of the length of `steps` + 1. In the example above it is 2 bits.
 The category "unknown" is added to represent data that are not present
 in the `categories` array.
 
-Settings:
+Input: `string`.
+Additional keys:
 
 - `categories` (array): The array of categories strings.
 
@@ -342,7 +333,8 @@ Settings:
 Calculates the [CRC8](https://en.wikipedia.org/wiki/Cyclic_redundancy_check)
 for the message. The size in bits for this `block` is always 8.
 
-Settings:
+Input: `None`.
+Additional keys: `None`.
 
 ## Functions
 
