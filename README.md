@@ -8,7 +8,7 @@
 maintaining a consistent payload size while sacrificing precision.
 Applications with limited bandwidth like [LoRa](https://lora-alliance.org/)
 or [Globalstar](https://www.globalstar.com/en-us/) are ideal candidates
-for `SPOS`. Spos is built as a library for `python3` and a command line
+for `SPOS`. `SPOS` is built as a library for `python3` and a command line
 tool.
 
 ## Quick Start
