@@ -18,7 +18,7 @@ from string import ascii_uppercase, ascii_lowercase, digits
 from . import encoders, decoders, validators
 
 
-TYPES_SETTINGS = {
+TYPES_KEYS = {
     "boolean": {},
     "binary": {"required": {"bits": int}},
     "integer": {
@@ -74,18 +74,15 @@ TYPES = {
         "encoder": encoders.encode_float,
         "decoder": decoders.decode_float,
     },
-    "pad": {
-        "encoder": lambda value, block: "0b" + "1" * block["settings"]["bits"],
-        "decoder": lambda message, block: None,
-    },
-    # We inject dependencies here to keep the functions with the same interface
+    "pad": {"encoder": encoders.encode_pad, "decoder": decoders.decode_pad},
+    # Inject dependencies with lambda to keep the functions with the same interface
     "array": {
         "input": list,
         "encoder": lambda value, block: encoders.encode_array(
-            value, block, encode_block, encode_items
+            value, block, encode_items
         ),
         "decoder": lambda message, block: decoders.decode_array(
-            message, block, decode_block, decode_message
+            message, block, decode_message
         ),
     },
     "object": {
@@ -138,67 +135,77 @@ def validate_block(block, parent="root"):
     Raises:
         KeyError, ValueError, TypeError: For non conformant blocks.
     """
-    # Check name
-    if "name" not in block:
-        raise KeyError("Block '{0}: {1}' must have 'name'.".format(parent, block))
-    name = block["name"]
-    if not isinstance(name, str):
-        raise TypeError(
-            "Block '{0}: {1}' 'name' must be a string.".format(parent, name)
-        )
+    # Check key
+    if "key" not in block:
+        raise KeyError("Block '{0}: {1}' must have 'key'.".format(parent, block))
+    key = block["key"]
+    if not isinstance(key, str):
+        raise TypeError("Block '{0}: {1}' 'key' must be a string.".format(parent, key))
 
     # Check type
     if "type" not in block:
-        raise KeyError("Block '{0}: {1}' must have 'type'.".format(parent, name))
+        raise KeyError("Block '{0}: {1}' must have 'type'.".format(parent, key))
     b_type = block["type"]
     if block["type"] not in TYPES:
         raise ValueError(
-            "Block '{0}: {1}' has an unknown 'type' {2}.".format(parent, name, b_type)
+            "Block '{0}: {1}' has an unknown 'type' {2}.".format(parent, key, b_type)
         )
-    type_settings = TYPES_SETTINGS[block["type"]]
+    type_keys = TYPES_KEYS[block["type"]]
 
-    # Check required settings
-    for s_name, tp in type_settings.get("required", {}).items():
-        if s_name not in block.get("settings", {}):
-            raise KeyError(
-                "Block '{0}: {1}' requires setting '{2}'.".format(parent, name, s_name)
-            )
+    # Check required keys
+    for s_key, tp in type_keys.get("required", {}).items():
         if tp == "blocks":
-            validate_block(
-                block["settings"]["blocks"], "{0}: {1}".format(parent, block["name"])
-            )
+            validate_block(block["blocks"], "{0}: {1}".format(parent, block["key"]))
         elif tp == "items":
-            for b in block["settings"]["items"]:
-                validate_block(b, "{0}: {1}".format(parent, block["name"]))
-        elif not isinstance(block["settings"][s_name], tp):
+            for b in block["items"]:
+                validate_block(b, "{0}: {1}".format(parent, block["key"]))
+        elif not isinstance(block[s_key], tp):
             raise TypeError(
                 "Block '{0}: {1}' setting '{2}' has wrong type '{3}' instead of '{4}'.".format(
-                    parent, name, s_name, type(block["settings"][s_name]), tp
+                    parent, key, s_key, type(block[s_key]), tp
                 )
             )
 
-    # Check optional settings
-    for s_name, opts in type_settings.get("optional", {}).items():
-        if not s_name in block["settings"]:
-            block["settings"][s_name] = opts["default"]
-        if not isinstance(block["settings"][s_name], opts["type"]):
+    # Check optional keys
+    for s_key, opts in type_keys.get("optional", {}).items():
+        if s_key in block and not isinstance(block[s_key], opts["type"]):
             raise TypeError(
                 "Block '{0}: {1}' optional setting '{2}' has wrong type '{3}' instead of '{4}'.".format(
-                    parent, name, s_name, type(block["settings"][s_name]), opts["type"]
+                    parent, key, s_key, type(block[s_key]), opts["type"]
                 )
             )
 
-    # Check for unexpected settings
-    allowed_settings = list(type_settings.get("optional", {}).keys()) + list(
-        type_settings.get("required", {}).keys()
+    # Check for unexpected keys
+    allowed_keys = (
+        list(type_keys.get("optional", {}).keys())
+        + list(type_keys.get("required", {}).keys())
+        + ["key", "type", "value", "bits"]
     )
-    for key in block.get("settings", {}):
-        if key not in allowed_settings and key != "bits":
+    for key in block:
+        if key not in allowed_keys:
             raise KeyError(
-                "Block '{0}' settings has an unexpected key '{1}'.".format(
-                    block["name"], key
+                "Block '{0}' block has an unexpected key '{1}'.".format(
+                    block["key"], key
                 )
             )
+
+
+def fill_defaults(block):
+    """
+    Fills the default values for optional valeus in `block`.
+
+    Args:
+        block (dict): The block to fill.
+
+    Returns:
+        block (dict): A copy of the block with the optional values.
+    """
+    block = copy.deepcopy(block)
+    type_keys = TYPES_KEYS[block["type"]]
+    for s_key, opts in type_keys.get("optional", {}).items():
+        if not s_key in block:
+            block[s_key] = opts["default"]
+    return block
 
 
 def encode_block(value, block):
@@ -213,6 +220,7 @@ def encode_block(value, block):
         message (str): Binary string of the message.
     """
     validate_block(block)
+    block = fill_defaults(block)
     type_conf = TYPES[block["type"]]
     if "input" in type_conf:
         validators.validate_input(value, type_conf["input"], block)
@@ -234,6 +242,7 @@ def decode_block(message, block):
         bits (int): Number of consumed bits in the operation.
     """
     validate_block(block)
+    block = fill_defaults(block)
     type_conf = TYPES[block["type"]]
     return type_conf["decoder"](message, block)
 
@@ -341,35 +350,31 @@ def accumulate_bits(message, block):
         bits (int): Number of bits in the block.
     """
     acc = 0
-    if "bits" in block.get("settings", {}):
-        acc += block["settings"]["bits"]
+    if "bits" in block:
+        acc += block["bits"]
     if block["type"] == "boolean":
         acc = 1
     elif block["type"] == "crc8":
         acc = 8
     elif block["type"] == "string":
-        acc += block["settings"]["length"] * 6
+        acc += block["length"] * 6
     elif block["type"] == "array":
-        bits = block["settings"]["bits"]
-        length = decoders.decode_integer(
-            message[:bits], {"settings": {"bits": bits, "offset": 0}}
-        )
-        acc += length * accumulate_bits(message[:bits], block["settings"]["blocks"])
+        bits = block["bits"]
+        length = decoders.decode_integer(message[:bits], {"bits": bits, "offset": 0})
+        acc += length * accumulate_bits(message[:bits], block["blocks"])
     elif block["type"] == "object":
-        for b in block["settings"]["items"]:
+        for b in block["items"]:
             bits = accumulate_bits(message, b)
             message = message[bits:]
             acc += bits
     elif block["type"] == "steps":
         bits = (
-            [2 ** i >= (len(block["settings"]["steps_names"])) for i in range(7)]
-            + [True]
+            [2 ** i >= (len(block["steps_names"])) for i in range(7)] + [True]
         ).index(True)
         acc += bits
     elif block["type"] == "categories":
         bits = (
-            [2 ** i >= (len(block["settings"]["categories"]) + 1) for i in range(7)]
-            + [True]
+            [2 ** i >= (len(block["categories"]) + 1) for i in range(7)] + [True]
         ).index(True)
         acc += bits
     return acc
@@ -392,10 +397,6 @@ def encode(payload_data, payload_spec):
         if block["type"] in ["crc8", "pad"]:
             values.append("0xff")
             continue
-        if "key" in block and "value" in block:
-            raise KeyError(
-                "Block '{0}' must have only one key or value, not both.".format(block)
-            )
         if "key" not in block and "value" not in block:
             raise KeyError(
                 "Block '{0}' must have either key or value, not neither.".format(block)
@@ -427,7 +428,7 @@ def decode(message, payload_spec):
     """
     items = payload_spec["items"]
     values = decode_message(message, items)
-    keys = [block["name"] for block in items]
+    keys = [block["key"] for block in items]
     payload_data = dict(zip(keys, values))
     for key, block in zip(keys, items):
         if block["type"] == "pad" and key in payload_data:

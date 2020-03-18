@@ -28,7 +28,7 @@ def encode_binary(value, block):
     """
     Encodes a binary value according to block specifications.
     """
-    bits = block["settings"]["bits"]
+    bits = block["bits"]
     bit_str = bin(int(value, 2)) if value.startswith("0b") else bin(int(value, 16))
     return truncate_bits(bit_str, bits)
 
@@ -37,8 +37,8 @@ def encode_integer(value, block):
     """
     Encodes an integer value according to block specifications.
     """
-    value -= block["settings"]["offset"]
-    bits = block["settings"]["bits"]
+    value -= block["offset"]
+    bits = block["bits"]
     overflow = 2 ** bits - 1
     bit_str = bin(min([max([value, 0]), overflow]))
     return truncate_bits(bit_str, bits)
@@ -48,10 +48,10 @@ def encode_float(value, block):
     """
     Encodes a float value according to block specifications.
     """
-    bits = block["settings"]["bits"]
-    upper = block["settings"]["upper"]
-    lower = block["settings"]["lower"]
-    approximation = block["settings"]["approximation"]
+    bits = block["bits"]
+    upper = block["upper"]
+    lower = block["lower"]
+    approximation = block["approximation"]
     approx = round
     if approximation == "floor":
         approx = math.floor
@@ -64,22 +64,22 @@ def encode_float(value, block):
     return truncate_bits(bit_str, bits)
 
 
-def encode_array(value, block, encode_block, encode_items):
+def encode_pad(value, block):
+    """
+    Encodes a pad value according to block specifications.
+    """
+    return "0b" + "1" * block["bits"]
+
+
+def encode_array(value, block, encode_items):
     """
     Encodes an array value according to block specifications.
     """
     message = ""
-    length_bits = block["settings"]["bits"]
-    length_block = {
-        "name": "array length",
-        "type": "integer",
-        "settings": {"bits": length_bits},
-    }
-    message += encode_block(len(value), length_block)
+    length_bits = block["bits"]
+    message += encode_integer(len(value), {"bits": length_bits, "offset": 0})
     max_length = min([2 ** length_bits - 1, len(value)])
-    items = [
-        block["settings"]["blocks"].copy() for _, v in zip(range(max_length), value)
-    ]
+    items = [block["blocks"].copy() for _, v in zip(range(max_length), value)]
     if len(value) > 0:
         message += "".join([msg[2:] for msg in encode_items(value[:max_length], items)])
     return message
@@ -89,8 +89,8 @@ def encode_object(value, block, encode_items):
     """
     Encodes an object value according to block specifications.
     """
-    items = block["settings"]["items"]
-    values = [value[item["name"]] for item in items]
+    items = block["items"]
+    values = [value[item["key"]] for item in items]
     return "0b" + "".join([msg[2:] for msg in encode_items(values, items)])
 
 
@@ -99,12 +99,10 @@ def encode_string(value, block, rev_alphabeth):
     Encodes an object value according to block specifications.
     """
     message = "0b"
-    value = " " * (block["settings"]["length"] - len(value)) + value
-    integer_block = {"type": "integer", "settings": {"bits": 6, "offset": 0}}
-    custom_alphabeth = block["settings"]["custom_alphabeth"]
-    rev_custom_alphabeth = {
-        val: key for key, val in block["settings"]["custom_alphabeth"].items()
-    }
+    value = " " * (block["length"] - len(value)) + value
+    integer_block = {"bits": 6, "offset": 0}
+    custom_alphabeth = block["custom_alphabeth"]
+    rev_custom_alphabeth = {val: key for key, val in block["custom_alphabeth"].items()}
     rev_space_map = {" ": 62}  # Maps spaces to +
     for letter in value:
         val = rev_custom_alphabeth.get(
@@ -118,10 +116,10 @@ def encode_steps(value, block):
     """
     Encodes a steps value according to block specifications.
     """
-    steps = block["settings"]["steps"]
+    steps = block["steps"]
     length = ([2 ** i >= len(steps) for i in range(7)] + [True]).index(True)
     value = ([value >= s for s in steps] + [False]).index(False)
-    block = {"type": "integer", "settings": {"bits": length, "offset": 0}}
+    block = {"bits": length, "offset": 0}
     return encode_integer(value, block)
 
 
@@ -129,11 +127,11 @@ def encode_categories(value, block):
     """
     Encodes a categories value according to block specifications.
     """
-    categories = block["settings"]["categories"] + ["error"]
+    categories = block["categories"] + ["error"]
     bits = ([2 ** i >= len(categories) for i in range(7)] + [True]).index(True)
     value = value if value in categories else "error"
     value = categories.index(value)
-    block = {"type": "integer", "settings": {"bits": bits, "offset": 0}}
+    block = {"bits": bits, "offset": 0}
     return encode_integer(value, block)
 
 

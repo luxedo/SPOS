@@ -1,0 +1,21 @@
+{
+  "name": "test payload",
+  "version": 2,
+  "items": [
+    {
+      "key": "important data",
+      "type": "integer",
+      "bits": 8
+    },
+    {
+      "key": "not so important",
+      "type": "float",
+      "bits": 12
+    },
+    {
+      "key": "danger",
+      "type": "categories",
+      "categories": ["terror", "aliens", "bunny"]
+    }
+  ]
+}

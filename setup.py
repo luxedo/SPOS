@@ -28,7 +28,7 @@ setuptools.setup(
     author_email="luizamaral306@gmail.com",
     url="https://github.com/luxedo/SPOS",
     license="LICENSE.md",
-    packages=setuptools.find_packages(),
+    packages=setuptools.find_packages(exclude=("tests",)),
     scripts=["bin/spos"],
     python_requires=">=3.7",
     install_requires=["crc8==0.1.0"],

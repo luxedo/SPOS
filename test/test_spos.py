@@ -54,29 +54,65 @@ class SposTestCase(unittest.TestCase):
                 self.assertEqual(dict1[key], dict2[key], error_msg)
 
 
+class TestValidateBlock(SposTestCase):
+    def test_key_not_in_block(self):
+        with self.assertRaises(KeyError):
+            block = {"type": "boolean"}
+            spos.validate_block(block)
+
+    def test_key_value_not_a_string(self):
+        with self.assertRaises(TypeError):
+            block = {"type": "boolean", "key": True}
+            spos.validate_block(block)
+
+    def test_type_not_in_block(self):
+        with self.assertRaises(KeyError):
+            block = {"key": "aloha"}
+            spos.validate_block(block)
+
+    def test_undefined_type(self):
+        with self.assertRaises(ValueError):
+            block = {"key": "aloha", "type": "hakuna"}
+            spos.validate_block(block)
+
+    def test_missing_required_key(self):
+        with self.assertRaises(KeyError):
+            block = {"key": "aloha", "type": "integer"}
+            spos.validate_block(block)
+
+    def test_wrong_type_for_required_key(self):
+        with self.assertRaises(TypeError):
+            block = {"key": "aloha", "type": "integer", "bits": "mattata"}
+            spos.validate_block(block)
+
+    def test_wrong_type_for_optional_key(self):
+        with self.assertRaises(TypeError):
+            block = {"key": "aloha", "type": "integer", "bits": 1, "offset": "mattata"}
+            spos.validate_block(block)
+
+    def test_invalid_key(self):
+        with self.assertRaises(KeyError):
+            block = {"key": "aloha", "type": "integer", "bits": 1, "mattata": "mattata"}
+            spos.validate_block(block)
+
+
 class TestBlock(SposTestCase):
     def test_boolean_true(self):
-        block = {"name": "boolean encode true", "type": "boolean"}
+        block = {"key": "boolean encode true", "type": "boolean"}
         t = True
         a = "0b1"
         self.assertEqual(spos.encode_block(t, block), a)
         self.assertEqual(spos.decode_block(a, block), t)
 
     def test_boolean_false(self):
-        block = {"name": "boolean false", "type": "boolean"}
+        block = {"key": "boolean false", "type": "boolean"}
         t = False
         a = "0b0"
         self.assertEqual(spos.encode_block(t, block), a)
         self.assertEqual(spos.decode_block(a, block), t)
 
-    def test_boolean_type_error(self):
-        with self.assertRaises(TypeError):
-            t = "fail"
-            block = {"name": "boolean error", "type": "boolean"}
-            self.assertEqual(spos.encode_block(t, block), True)
-
     def test_binary_block(self):
-        block = {"name": "binary bin", "type": "binary", "settings": {"bits": 10}}
+        block = {"key": "binary bin", "type": "binary", "bits": 10}
         t = "0b100101"
         a = "0b0000100101"
         self.assertEqual(spos.encode_block(t, block), a)
@@ -86,17 +122,17 @@ class TestBlock(SposTestCase):
     def test_binary_value_error(self):
         with self.assertRaises(ValueError):
             block = {
-                "name": "binary bin error",
+                "key": "binary bin error",
                 "type": "binary",
-                "settings": {"bits": 10},
+                "bits": 10,
             }
             spos.encode_block("0xfail", block)
 
     def test_binary_hex(self):
         block = {
-            "name": "binary large hex",
+            "key": "binary large hex",
             "type": "binary",
-            "settings": {"bits": 10},
+            "bits": 10,
         }
         t = "0xdeadbeef"
         a = bin(int(t, 16))[:12]
@@ -105,37 +141,37 @@ class TestBlock(SposTestCase):
 
     def test_binary_small_hex(self):
         block = {
-            "name": "binary small hex",
+            "key": "binary small hex",
             "type": "binary",
-            "settings": {"bits": 10},
+            "bits": 10,
         }
         t = "0xff"
-        a = truncate_bits(bin(int(t, 16))[:12], block["settings"]["bits"])
+        a = truncate_bits(bin(int(t, 16))[:12], block["bits"])
         self.assertEqual(spos.encode_block(t, block), a)
 
     def test_binary_hex_value_error(self):
         with self.assertRaises(ValueError):
             block = {
-                "name": "binary hex fail",
+                "key": "binary hex fail",
                 "type": "binary",
-                "settings": {"bits": 10},
+                "bits": 10,
             }
             spos.encode_block("0xfail", block)
 
     def test_binary_type_error(self):
         with self.assertRaises(TypeError):
             block = {
-                "name": "binary type fail",
+                "key": "binary type fail",
                 "type": "binary",
-                "settings": {"bits": 10},
+                "bits": 10,
             }
             spos.encode_block("fail", block)
 
     def test_integer_block(self):
         block = {
-            "name": "integer test",
+            "key": "integer test",
             "type": "integer",
-            "settings": {"bits": 6},
+            "bits": 6,
         }
         t = 1
         a = "0b000001"
@@ -145,17 +181,18 @@ class TestBlock(SposTestCase):
     def test_integer_type_error(self):
         with self.assertRaises(TypeError):
             block = {
-                "name": "integer fail",
+                "key": "integer fail",
                 "type": "integer",
-                "settings": {"bits": 6},
+                "bits": 6,
             }
             spos.encode_block("fail", block)
 
     def test_integer_offset(self):
         block = {
-            "name": "integer offset",
+            "key": "integer offset",
             "type": "integer",
-            "settings": {"bits": 6, "offset": 100},
+            "bits": 6,
+            "offset": 100,
         }
         t = 120
         a = "0b010100"
@@ -164,9 +201,9 @@ class TestBlock(SposTestCase):
 
     def test_integer_underflow(self):
         block = {
-            "name": "integer underflow",
+            "key": "integer underflow",
             "type": "integer",
-            "settings": {"bits": 6},
+            "bits": 6,
         }
         t = -10
         a = "0b000000"
@@ -174,16 +211,16 @@ class TestBlock(SposTestCase):
 
     def test_integer_overflow(self):
         block = {
-            "name": "integer overflow",
+            "key": "integer overflow",
             "type": "integer",
-            "settings": {"bits": 6},
+            "bits": 6,
         }
         t = 128
         a = "0b111111"
         self.assertEqual(spos.encode_block(t, block), a)
 
     def test_float_block(self):
-        block = {"name": "float test", "type": "float", "settings": {"bits": 2}}
+        block = {"key": "float test", "type": "float", "bits": 2}
         t = 0.66
         a = "0b10"
         self.assertEqual(spos.encode_block(t, block), a)
@@ -192,17 +229,18 @@ class TestBlock(SposTestCase):
     def test_float_type_error(self):
         with self.assertRaises(TypeError):
             block = {
-                "name": "float fail",
+                "key": "float fail",
                 "type": "float",
-                "settings": {"bits": 4},
+                "bits": 4,
             }
             spos.encode_block("fail", block)
 
     def test_float_approximation_floor(self):
         block = {
-            "name": "float approximation floor",
+            "key": "float approximation floor",
             "type": "float",
-            "settings": {"bits": 2, "approximation": "floor"},
+            "bits": 2,
+            "approximation": "floor",
         }
         t = 0.66
         a = "0b01"
@@ -212,9 +250,10 @@ class TestBlock(SposTestCase):
 
     def test_float_approximation_ceil(self):
         block = {
-            "name": "float approximation ceil",
+            "key": "float approximation ceil",
             "type": "float",
-            "settings": {"bits": 2, "approximation": "ceil"},
+            "bits": 2,
+            "approximation": "ceil",
         }
         t = 0.34
         a = "0b10"
@@ -224,9 +263,10 @@ class TestBlock(SposTestCase):
 
     def test_float_upper(self):
         block = {
-            "name": "float upper",
+            "key": "float upper",
             "type": "float",
-            "settings": {"bits": 5, "upper": 31},
+            "bits": 5,
+            "upper": 31,
         }
         t = 13
         a = "0b01101"
@@ -235,9 +275,10 @@ class TestBlock(SposTestCase):
 
     def test_float_lower(self):
         block = {
-            "name": "float lower",
+            "key": "float lower",
             "type": "float",
-            "settings": {"bits": 3, "lower": -6},
+            "bits": 3,
+            "lower": -6,
         }
         t = -1
         a = "0b101"
@@ -246,9 +287,9 @@ class TestBlock(SposTestCase):
 
     def test_float_underflow(self):
         block = {
-            "name": "float underflow",
+            "key": "float underflow",
             "type": "float",
-            "settings": {"bits": 6},
+            "bits": 6,
         }
         t = -10
         a = "0b000000"
@@ -256,23 +297,23 @@ class TestBlock(SposTestCase):
 
     def test_float_overflow(self):
         block = {
-            "name": "float overflow",
+            "key": "float overflow",
             "type": "float",
-            "settings": {"bits": 6},
+            "bits": 6,
         }
         t = 10
         a = "0b111111"
         self.assertEqual(spos.encode_block(t, block), a)
 
     def test_pad_block_2(self):
-        block = {"name": "pad test", "type": "pad", "settings": {"bits": 2}}
+        block = {"key": "pad test", "type": "pad", "bits": 2}
         t = None
         a = "0b11"
         self.assertEqual(spos.encode_block(t, block), a)
         self.assertEqual(spos.decode_block(a, block), t)
 
     def test_pad_block_6(self):
-        block = {"name": "pad test", "type": "pad", "settings": {"bits": 6}}
+        block = {"key": "pad test", "type": "pad", "bits": 6}
         t = None
         a = "0b111111"
         self.assertEqual(spos.encode_block(t, block), a)
@@ -280,16 +321,10 @@ class TestBlock(SposTestCase):
 
     def test_array_block(self):
         block = {
-            "name": "integer array",
+            "key": "integer array",
             "type": "array",
-            "settings": {
-                "bits": 3,
-                "blocks": {
-                    "name": "array val",
-                    "type": "integer",
-                    "settings": {"bits": 3},
-                },
-            },
+            "bits": 3,
+            "blocks": {"key": "array val", "type": "integer", "bits": 3,},
         }
         t = [1, 2, 3, 4]
         a = "0b100001010011100"
@@ -298,16 +333,10 @@ class TestBlock(SposTestCase):
 
     def test_array_truncate(self):
         block = {
-            "name": "truncate array",
+            "key": "truncate array",
             "type": "array",
-            "settings": {
-                "bits": 2,
-                "blocks": {
-                    "name": "array val",
-                    "type": "integer",
-                    "settings": {"bits": 3},
-                },
-            },
+            "bits": 2,
+            "blocks": {"key": "array val", "type": "integer", "bits": 3,},
         }
         t = [1, 2, 3, 4, 5]
         a = "0b11001010011"
@@ -317,58 +346,41 @@ class TestBlock(SposTestCase):
 
     def test_array_empty(self):
         block = {
-            "name": "empty array",
+            "key": "empty array",
             "type": "array",
-            "settings": {
-                "bits": 7,
-                "blocks": {
-                    "name": "array val",
-                    "type": "integer",
-                    "settings": {"bits": 3},
-                },
-            },
+            "bits": 7,
+            "blocks": {"key": "array val", "type": "integer", "bits": 3,},
         }
         t = []
         a = "0b0000000"
         self.assertEqual(spos.encode_block(t, block), a)
         self.assertEqual(spos.decode_block(a, block), [])
 
-    # def test_array_nested(self):
-    #     Nested arrays another day
-    #     block = {
-    #         "name": "nested array",
-    #         "type": "array",
-    #         "settings": {
-    #             "bits": 2,
-    #             "blocks": {
-    #                 "name": "array val 1",
-    #                 "type": "array",
-    #                 "settings": {
-    #                     "bits": 3,
-    #                     "blocks": {
-    #                         "name": "array val 2",
-    #                         "type": "integer",
-    #                         "settings": {"bits": 3},
-    #                     },
-    #                 },
-    #             },
-    #         },
-    #     }
-    #     t = [[1, 2], [3, 4]]
-    #     a = "0b10010001010010011100"
-    #     self.assertEqual(spos.encode_block(t, block), a)
-    #     self.assertEqual(spos.decode_block(a, block), t)
+    def test_array_nested(self):
+        block = {
+            "key": "nested array",
+            "type": "array",
+            "bits": 2,
+            "blocks": {
+                "key": "array val 1",
+                "type": "array",
+                "bits": 3,
+                "blocks": {"key": "array val 2", "type": "integer", "bits": 3,},
+            },
+        }
+        t = [[1, 2], [3, 4]]
+        a = "0b10010001010010011100"
+        self.assertEqual(spos.encode_block(t, block), a)
+        self.assertEqual(spos.decode_block(a, block), t)
 
     def test_object_block(self):
         block = {
-            "name": "object",
+            "key": "object",
             "type": "object",
-            "settings": {
-                "items": [
-                    {"name": "key1", "type": "integer", "settings": {"bits": 3}},
-                    {"name": "key2", "type": "float", "settings": {"bits": 5}},
-                ],
-            },
+            "items": [
+                {"key": "key1", "type": "integer", "bits": 3},
+                {"key": "key2", "type": "float", "bits": 5},
+            ],
         }
         t = {"key1": 6, "key2": 0.9}
         a = "0b11011100"
@@ -377,35 +389,23 @@ class TestBlock(SposTestCase):
 
     def test_object_nested(self):
         block = {
-            "name": "object",
+            "key": "object",
             "type": "object",
-            "settings": {
-                "items": [
-                    {"name": "key1", "type": "integer", "settings": {"bits": 3}},
-                    {
-                        "name": "key2",
-                        "type": "object",
-                        "settings": {
-                            "items": [
-                                {"name": "nKey", "type": "boolean"},
-                                {
-                                    "name": "nKey2",
-                                    "type": "object",
-                                    "settings": {
-                                        "items": [
-                                            {
-                                                "name": "nKey3",
-                                                "type": "float",
-                                                "settings": {"bits": 8},
-                                            }
-                                        ]
-                                    },
-                                },
-                            ]
+            "items": [
+                {"key": "key1", "type": "integer", "bits": 3},
+                {
+                    "key": "key2",
+                    "type": "object",
+                    "items": [
+                        {"key": "nKey", "type": "boolean"},
+                        {
+                            "key": "nKey2",
+                            "type": "object",
+                            "items": [{"key": "nKey3", "type": "float", "bits": 8,}],
                         },
-                    },
-                ]
-            },
+                    ],
+                },
+            ],
         }
         t = {"key1": 6, "key2": {"nKey": False, "nKey2": {"nKey3": 0.8}}}
         a = "0b110011001100"
@@ -416,24 +416,22 @@ class TestBlock(SposTestCase):
     def test_object_key_error(self):
         with self.assertRaises(KeyError):
             block = {
-                "name": "object missing key",
+                "key": "object missing key",
                 "type": "object",
-                "settings": {
-                    "items": [
-                        {"name": "key1", "type": "integer", "settings": {"bits": 3}},
-                        {"name": "key2", "type": "float", "settings": {"bits": 5}},
-                        {"name": "key3", "type": "boolean"},
-                    ],
-                },
+                "items": [
+                    {"key": "key1", "type": "integer", "bits": 3},
+                    {"key": "key2", "type": "float", "bits": 5},
+                    {"key": "key3", "type": "boolean"},
+                ],
             }
             t = {"key1": 6, "key2": 0.9}
             spos.encode_block(t, block)
 
     def test_string_block(self):
         block = {
-            "name": "string",
+            "key": "string",
             "type": "string",
-            "settings": {"length": 6},
+            "length": 6,
         }
         t = "test"
         a = "0b111110111110101101011110101100101101"
@@ -443,9 +441,9 @@ class TestBlock(SposTestCase):
 
     def test_string_block_unknown_character(self):
         block = {
-            "name": "string",
+            "key": "string",
             "type": "string",
-            "settings": {"length": 6},
+            "length": 6,
         }
         t = "test%"
         a = "0b111110101101011110101100101101111111"
@@ -455,9 +453,10 @@ class TestBlock(SposTestCase):
 
     def test_string_custom_alphabeth(self):
         block = {
-            "name": "string",
+            "key": "string",
             "type": "string",
-            "settings": {"length": 6, "custom_alphabeth": {62: " "}},
+            "length": 6,
+            "custom_alphabeth": {62: " "},
         }
         t = "test"
         a = "0b111110111110101101011110101100101101"
@@ -468,12 +467,10 @@ class TestBlock(SposTestCase):
 
     def test_steps_block(self):
         block = {
-            "name": "steps",
+            "key": "steps",
             "type": "steps",
-            "settings": {
-                "steps": [0, 5, 10],
-                "steps_names": ["critical", "low", "charged", "full"],
-            },
+            "steps": [0, 5, 10],
+            "steps_names": ["critical", "low", "charged", "full"],
         }
         t = 2
         a = "0b01"
@@ -483,12 +480,10 @@ class TestBlock(SposTestCase):
 
     def test_steps_index_0(self):
         block = {
-            "name": "steps",
+            "key": "steps",
             "type": "steps",
-            "settings": {
-                "steps": [0, 5, 10],
-                "steps_names": ["critical", "low", "charged", "full"],
-            },
+            "steps": [0, 5, 10],
+            "steps_names": ["critical", "low", "charged", "full"],
         }
         t = -1
         a = "0b00"
@@ -498,12 +493,10 @@ class TestBlock(SposTestCase):
 
     def test_steps_lower_boundary(self):
         block = {
-            "name": "steps",
+            "key": "steps",
             "type": "steps",
-            "settings": {
-                "steps": [0, 5, 10],
-                "steps_names": ["critical", "low", "charged", "full"],
-            },
+            "steps": [0, 5, 10],
+            "steps_names": ["critical", "low", "charged", "full"],
         }
         t = 5
         a = "0b10"
@@ -513,12 +506,10 @@ class TestBlock(SposTestCase):
 
     def test_steps_last_index(self):
         block = {
-            "name": "steps",
+            "key": "steps",
             "type": "steps",
-            "settings": {
-                "steps": [0, 5, 10],
-                "steps_names": ["critical", "low", "charged", "full"],
-            },
+            "steps": [0, 5, 10],
+            "steps_names": ["critical", "low", "charged", "full"],
         }
         t = 11
         a = "0b11"
@@ -528,9 +519,9 @@ class TestBlock(SposTestCase):
 
     def test_steps_auto_steps_names(self):
         block = {
-            "name": "steps",
+            "key": "steps",
             "type": "steps",
-            "settings": {"steps": [0, 5, 10],},
+            "steps": [0, 5, 10],
         }
         t = 1
         a = "0b01"
@@ -541,9 +532,10 @@ class TestBlock(SposTestCase):
     def test_steps_error_steps_names(self):
         with self.assertRaises(ValueError):
             block = {
-                "name": "steps",
+                "key": "steps",
                 "type": "steps",
-                "settings": {"steps": [0, 5, 10], "steps_names": ["one", "two"]},
+                "steps": [0, 5, 10],
+                "steps_names": ["one", "two"],
             }
             t = 1
             encoded = spos.encode_block(t, block)
@@ -551,9 +543,9 @@ class TestBlock(SposTestCase):
 
     def test_categories_block_0(self):
         block = {
-            "name": "categories",
+            "key": "categories",
             "type": "categories",
-            "settings": {"categories": ["critical", "low", "charged", "full"],},
+            "categories": ["critical", "low", "charged", "full"],
         }
         t = "critical"
         a = "0b000"
@@ -563,9 +555,9 @@ class TestBlock(SposTestCase):
 
     def test_categories_block_1(self):
         block = {
-            "name": "categories",
+            "key": "categories",
             "type": "categories",
-            "settings": {"categories": ["critical", "low", "charged", "full"],},
+            "categories": ["critical", "low", "charged", "full"],
         }
         t = "low"
         a = "0b001"
@@ -575,9 +567,9 @@ class TestBlock(SposTestCase):
 
     def test_categories_block_2(self):
         block = {
-            "name": "categories",
+            "key": "categories",
             "type": "categories",
-            "settings": {"categories": ["critical", "low", "charged", "full"],},
+            "categories": ["critical", "low", "charged", "full"],
         }
         t = "charged"
         a = "0b010"
@@ -587,9 +579,9 @@ class TestBlock(SposTestCase):
 
     def test_categories_block_3(self):
         block = {
-            "name": "categories",
+            "key": "categories",
             "type": "categories",
-            "settings": {"categories": ["critical", "low", "charged", "full"],},
+            "categories": ["critical", "low", "charged", "full"],
         }
         t = "full"
         a = "0b011"
@@ -599,9 +591,9 @@ class TestBlock(SposTestCase):
 
     def test_categories_block_4(self):
         block = {
-            "name": "categories",
+            "key": "categories",
             "type": "categories",
-            "settings": {"categories": ["critical", "low", "charged", "full"],},
+            "categories": ["critical", "low", "charged", "full"],
         }
         t = "unknown"
         a = "0b100"
@@ -613,7 +605,7 @@ class TestBlock(SposTestCase):
         t = "0b1011110010110010"
         a = "0b10100100"
         b = "0b101111001011001010100100"
-        block = {"name": "crc BIN test", "type": "crc8"}
+        block = {"key": "crc BIN test", "type": "crc8"}
         self.assertEqual(spos.encode_block(t, block), a)
         self.assertEqual(spos.decode_block(b, block), True)
 
@@ -621,7 +613,7 @@ class TestBlock(SposTestCase):
         t = "0xABCD35"
         a = "0b00101011"
         b = "0b10101011110011010011010100101011"
-        block = {"name": "crc HEX test", "type": "crc8"}
+        block = {"key": "crc HEX test", "type": "crc8"}
         self.assertEqual(spos.encode_block(t, block), a)
         self.assertEqual(spos.decode_block(b, block), True)
 
@@ -629,53 +621,47 @@ class TestBlock(SposTestCase):
 class TestItems(SposTestCase):
     def test_items(self):
         items = [
-            {"name": "active", "type": "boolean"},
-            {"name": "s3cr37", "type": "binary", "settings": {"bits": 12}},
-            {"name": "timestamp", "type": "integer", "settings": {"bits": 32}},
-            {"name": "wind speed", "type": "float", "settings": {"bits": 7},},
-            {"name": "pad", "type": "pad", "settings": {"bits": 7},},
+            {"key": "active", "type": "boolean"},
+            {"key": "s3cr37", "type": "binary", "bits": 12},
+            {"key": "timestamp", "type": "integer", "bits": 32},
+            {"key": "wind speed", "type": "float", "bits": 7},
+            {"key": "pad", "type": "pad", "bits": 7},
             # {
-            #     "name": "counts",
+            #     "key": "counts",
             #     "type": "array",
-            #     "settings": {
-            #         "bits": 7,
-            #         "blocks": {
-            #             "name": "count",
-            #             "type": "integer",
-            #             "settings": {"bits": 5},
-            #         },
+            #     "bits": 7,
+            #     "blocks": {
+            #         "key": "count",
+            #         "type": "integer",
+            #         "bits": 5,
             #     },
             # },
             {
-                "name": "sensor X",
+                "key": "sensor X",
                 "type": "object",
-                "settings": {
-                    "items": [
-                        {"name": "value Y", "type": "integer", "settings": {"bits": 6}},
-                        {"name": "value Z", "type": "float", "settings": {"bits": 6}},
-                    ]
-                },
+                "items": [
+                    {"key": "value Y", "type": "integer", "bits": 6},
+                    {"key": "value Z", "type": "float", "bits": 6},
+                ],
             },
-            {"name": "user input", "type": "string", "settings": {"length": 7}},
+            {"key": "user input", "type": "string", "length": 7},
             {
-                "name": "bird sightings",
+                "key": "bird sightings",
                 "type": "steps",
-                "settings": {
-                    "steps": [0, 5, 10, 15, 20],
-                    "steps_names": [
-                        "Bogey",
-                        "Par",
-                        "Birdie",
-                        "Eagle",
-                        "Albatross",
-                        "Condor",
-                    ],
-                },
+                "steps": [0, 5, 10, 15, 20],
+                "steps_names": [
+                    "Bogey",
+                    "Par",
+                    "Birdie",
+                    "Eagle",
+                    "Albatross",
+                    "Condor",
+                ],
             },
             {
-                "name": "battery",
+                "key": "battery",
                 "type": "categories",
-                "settings": {"categories": ["critical", "low", "charged", "full"],},
+                "categories": ["critical", "low", "charged", "full"],
             },
         ]
         values = [
@@ -725,38 +711,16 @@ class TestEncodeDecode(SposTestCase):
             "name": "test encode",
             "version": 1,
             "items": [
+                {"key": "holy", "type": "string", "length": 10,},
+                {"key": "version", "type": "integer", "value": 1, "bits": 6,},
                 {
-                    "name": "holy",
-                    "type": "string",
-                    "key": "holy",
-                    "settings": {"length": 10},
-                },
-                {
-                    "name": "version",
-                    "type": "integer",
-                    "value": 1,
-                    "settings": {"bits": 6},
-                },
-                {
-                    "name": "buffer",
-                    "type": "array",
                     "key": "buffer",
-                    "settings": {
-                        "bits": 8,
-                        "blocks": {
-                            "name": "buf_val",
-                            "type": "integer",
-                            "settings": {"bits": 8},
-                        },
-                    },
+                    "type": "array",
+                    "bits": 8,
+                    "blocks": {"key": "buf_val", "type": "integer", "bits": 8,},
                 },
-                {
-                    "name": "date",
-                    "type": "float",
-                    "key": "date",
-                    "settings": {"bits": 6},
-                },
-                {"name": "crc", "type": "crc8"},
+                {"key": "date", "type": "float", "bits": 6,},
+                {"key": "crc", "type": "crc8"},
             ],
         }
         encoded = "0b111110111110111110111110111110100000101011011010100010100101000001000001000000000100000010000000110000010011111010000100"
@@ -835,66 +799,35 @@ class TestEncodeDecode(SposTestCase):
             "name": "test payload 2",
             "version": 2,
             "items": [
-                {"name": "pad", "type": "pad", "settings": {"bits": 5}},
+                {"key": "pad", "type": "pad", "bits": 5},
+                {"key": "msg_version", "type": "integer", "value": 2, "bits": 6,},
+                {"key": "sent_yesterday", "type": "boolean"},
                 {
-                    "name": "msg_version",
-                    "type": "integer",
-                    "value": 2,
-                    "settings": {"bits": 6},
-                },
-                {"name": "sent_yesterday", "type": "boolean", "key": "sent_yesterday"},
-                {
-                    "name": "rpi_temperature",
-                    "type": "steps",
                     "key": "rpi_temperature",
-                    "settings": {
-                        "steps": [30, 50, 75],
-                        "steps_names": ["T<30", "30<T<50", "50<T<75", "T>75"],
-                    },
+                    "type": "steps",
+                    "steps": [30, 50, 75],
+                    "steps_names": ["T<30", "30<T<50", "50<T<75", "T>75"],
                 },
                 {
-                    "name": "voltage",
-                    "type": "float",
                     "key": "voltage",
-                    "settings": {"bits": 6, "lower": 10, "upper": 13},
-                },
-                {
-                    "name": "temperature",
                     "type": "float",
+                    "bits": 6,
+                    "lower": 10,
+                    "upper": 13,
+                },
+                {
                     "key": "temperature",
-                    "settings": {"bits": 6, "lower": 5, "upper": 50},
+                    "type": "float",
+                    "bits": 6,
+                    "lower": 5,
+                    "upper": 50,
                 },
-                {
-                    "name": "count_arm",
-                    "type": "integer",
-                    "key": "count_arm",
-                    "settings": {"bits": 6},
-                },
-                {
-                    "name": "count_eri",
-                    "type": "integer",
-                    "key": "count_eri",
-                    "settings": {"bits": 6},
-                },
-                {
-                    "name": "count_cos",
-                    "type": "integer",
-                    "key": "count_cos",
-                    "settings": {"bits": 6},
-                },
-                {
-                    "name": "count_fru",
-                    "type": "integer",
-                    "key": "count_fru",
-                    "settings": {"bits": 6},
-                },
-                {
-                    "name": "count_sac",
-                    "type": "integer",
-                    "key": "count_sac",
-                    "settings": {"bits": 6},
-                },
-                {"name": "crc8", "type": "crc8"},
+                {"key": "count_arm", "type": "integer", "bits": 6,},
+                {"key": "count_eri", "type": "integer", "bits": 6,},
+                {"key": "count_cos", "type": "integer", "bits": 6,},
+                {"key": "count_fru", "type": "integer", "bits": 6,},
+                {"key": "count_sac", "type": "integer", "bits": 6,},
+                {"key": "crc8", "type": "crc8"},
             ],
         }
 
@@ -922,54 +855,36 @@ class TestEncodeDecode(SposTestCase):
         payload_spec = {
             "items": [
                 {
-                    "name": "confidences",
-                    "type": "array",
                     "key": "confidences",
-                    "settings": {
-                        "bits": 8,
-                        "blocks": {
-                            "name": "confidence",
-                            "type": "float",
-                            "settings": {"bits": 4},
-                        },
-                    },
-                },
-                {
-                    "name": "categories",
                     "type": "array",
+                    "bits": 8,
+                    "blocks": {"key": "confidence", "type": "float", "bits": 4,},
+                },
+                {
                     "key": "categories",
-                    "settings": {
-                        "bits": 8,
-                        "blocks": {
-                            "name": "category",
-                            "type": "categories",
-                            "settings": {"categories": ["bike", "skate", "scooter"]},
-                        },
+                    "type": "array",
+                    "bits": 8,
+                    "blocks": {
+                        "key": "category",
+                        "type": "categories",
+                        "categories": ["bike", "skate", "scooter"],
                     },
                 },
+                {"key": "msg_version", "type": "integer", "value": 1, "bits": 6,},
+                {"key": "timestamp", "type": "integer", "bits": 32,},
                 {
-                    "name": "msg_version",
-                    "type": "integer",
-                    "value": 1,
-                    "settings": {"bits": 6},
-                },
-                {
-                    "name": "timestamp",
-                    "type": "integer",
-                    "key": "timestamp",
-                    "settings": {"bits": 32},
-                },
-                {
-                    "name": "voltage",
-                    "type": "float",
                     "key": "voltage",
-                    "settings": {"bits": 8, "lower": 10, "upper": 13},
+                    "type": "float",
+                    "bits": 8,
+                    "lower": 10,
+                    "upper": 13,
                 },
                 {
-                    "name": "temperature",
-                    "type": "float",
                     "key": "temperature",
-                    "settings": {"bits": 8, "lower": 5, "upper": 50},
+                    "type": "float",
+                    "bits": 8,
+                    "lower": 5,
+                    "upper": 50,
                 },
             ]
         }
@@ -985,31 +900,14 @@ class TestEncodeDecode(SposTestCase):
             "name": "test encode",
             "version": 1,
             "items": [
+                {"key": "holy", "type": "string", "length": 11,},
                 {
-                    "name": "holy",
-                    "type": "string",
-                    "key": "holy",
-                    "settings": {"length": 11},
-                },
-                {
-                    "name": "buffer",
-                    "type": "array",
                     "key": "buffer",
-                    "settings": {
-                        "bits": 8,
-                        "blocks": {
-                            "name": "buf_val",
-                            "type": "integer",
-                            "settings": {"bits": 9},
-                        },
-                    },
+                    "type": "array",
+                    "bits": 8,
+                    "blocks": {"key": "buf_val", "type": "integer", "bits": 9,},
                 },
-                {
-                    "name": "date",
-                    "type": "float",
-                    "key": "date",
-                    "settings": {"bits": 7},
-                },
+                {"key": "date", "type": "float", "bits": 7,},
             ],
         }
         encoded = "0b111110111110111110111110111110100000101011011010100010100101000001000001000000000100000010000000110000010011111010000100"
@@ -1021,6 +919,7 @@ class TestEncodeDecode(SposTestCase):
         enc = spos.hex_encode(payload_data, payload_spec)
         dec = spos.hex_decode(enc, payload_spec)
         self.assertDict(dec, decoded)
+
 
 if __name__ == "__main__":
     unittest.main()

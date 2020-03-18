@@ -22,7 +22,7 @@ def validate_input(value, v_type, block):
     if not isinstance(value, v_type):
         raise TypeError(
             "Value for block '{0}' must be of type '{1}', not '{2}'".format(
-                block["name"], v_type, type(value)
+                block["key"], v_type, type(value)
             )
         )
 
@@ -34,7 +34,7 @@ def validate_binary(value, block):
     if not (value.startswith("0b") or value.startswith("0x")):
         raise TypeError(
             "Value for block '{0}' must be a binary string or an hex string.".format(
-                block["name"]
+                block["key"]
             )
         )
 
@@ -47,12 +47,12 @@ def validate_crc8(value, block):
     if value.startswith("0b") and not (len(value[2:]) % 8 == 0):
         raise ValueError(
             "Binary string '{0}' must have an 8-multiple number of characters (bits)".format(
-                block["name"]
+                block["key"]
             )
         )
     elif value.startswith("0x") and not (len(value[2:]) % 2 == 0):
         raise ValueError(
             "Hex string '{0}' must have a pair number of characters".format(
-                block["name"]
+                block["key"]
             )
         )

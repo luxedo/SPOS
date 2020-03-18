@@ -23,17 +23,15 @@ payload_spec = {
   "version": "1.0.0",
   "items": [{
     "type": "integer",
-    "name": "payload_version",
+    "key": "payload_version",
     "value": 1,  # 01
     "bits": 2
   }, {
     "type": "integer",
-    "name": "integer 1",
     "key": "int_data",
     "bits": 6
   }, {
     "type": "float",
-    "name": "float 1",
     "key": "float_data",
     "bits": 6
 }]
@@ -55,17 +53,15 @@ payload_spec = {
   "version": "1.0.0",
   "items": [{
     "type": "integer",
-    "name": "payload_version",
+    "key": "payload_version",
     "value": 1,  # 01
     "bits": 2
   }, {
     "type": "integer",
-    "name": "integer 1",
     "key": "int_data",
     "bits": 6
   }, {
     "type": "float",
-    "name": "float 1",
     "key": "float_data",
     "bits": 6
 }]
@@ -88,8 +84,7 @@ serialized message.
 payload_spec = {
   "items": [{
     "type:": "integer",
-    "name": "temperature",
-    "key": "temp",
+    "key": "temperature",
     "bits": 6,
     "offset": 273
 }]}
@@ -113,14 +108,12 @@ Message version
 
 ## Block
 
-The required keys for `block` objects are: `type`, `name`, `key` or
-`value`. For each `type` there might be aditional required keys and/or
-optional keys might .
+The required keys for `block` objects are: `key` and `type`. `value` is
+an optional key. For each `type` there might be aditional required keys
+and/or optional keys.
 
 The value to be encoded is either a `key` in the `payload_data` object or
-a statuc `value`.
-
-Additional `settings` may be required according to the chosen `type`.
+a statuc `value` if present.
 
 The encoded data is _big-endian_ and truncations occour in the least
 significant bits when applicable. Data overflow is set to the maximum
@@ -128,17 +121,13 @@ value and underflow to the minimum.
 
 ### Block keys
 
-#### `name`
-
-The name of the `block`.
-
 #### `key`
 
 The key to get the value of the `block` in `payload_data`.
 
 #### `value`
 
-A static value of the `block`.
+A static value for the `block` (optional).
 
 #### `type`
 
@@ -259,8 +248,7 @@ Additional keys:
 payload_spec = {
   "items": [{
     "type:": "string",
-    "name": "text",
-    "key": "text1",
+    "key": "text",
     "length": 128,
     "custom_alphabeth": {
       0: "{",
@@ -283,8 +271,7 @@ Maps a numeric value to named steps. Eg:
 payload_spec = {
   "items": [{
     "type:": "steps",
-    "name": "battery",
-    "key": "bat",
+    "key": "battery",
     "steps": [0.1, 0.6, 0.95],
     "steps_names": ["critical", "low", "discharging", "charged"]
     # [-Inf, 0.1) critical, [0.1, 0.6) low, [0.6, 0.95) discharging, [0.95, Inf) charged
@@ -310,11 +297,9 @@ Maps strings to categories: Eg:
 payload_spec = {
   "items": [{
     "type:": "categories",
-    "name": "color",
     "key": "color",
-    "settings": {
-      "categories": ["red", "green", "blue", "iridescent"],
-}}]
+    "categories": ["red", "green", "blue", "iridescent"],
+}]
 payload_data = {"color": "red"}  # low
 ```
 
