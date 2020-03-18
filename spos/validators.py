@@ -50,7 +50,7 @@ def validate_crc8(value, block):
                 block["key"]
             )
         )
-    elif value.startswith("0x") and not (len(value[2:]) % 2 == 0):
+    if value.startswith("0x") and not (len(value[2:]) % 2 == 0):
         raise ValueError(
             "Hex string '{0}' must have a pair number of characters".format(
                 block["key"]
