@@ -79,7 +79,7 @@ def encode_array(value, block, encode_items):
     length_bits = block["bits"]
     message += encode_integer(len(value), {"bits": length_bits, "offset": 0})
     max_length = min([2 ** length_bits - 1, len(value)])
-    items = [block["blocks"].copy() for _, v in zip(range(max_length), value)]
+    items = [block["blocks"].copy() for _ in range(min([max_length, len(value)]))]
     if len(value) > 0:
         message += "".join([msg[2:] for msg in encode_items(value[:max_length], items)])
     return message
@@ -90,7 +90,9 @@ def encode_object(value, block, encode_items):
     Encodes an object value according to block specifications.
     """
     items = block["items"]
-    values = [value[item["key"]] for item in items]
+    values = [
+        (value[item["key"]] if "value" not in item else item["value"]) for item in items
+    ]
     return "0b" + "".join([msg[2:] for msg in encode_items(values, items)])
 
 
@@ -99,9 +101,8 @@ def encode_string(value, block, rev_alphabeth):
     Encodes an object value according to block specifications.
     """
     message = "0b"
-    value = " " * (block["length"] - len(value)) + value
+    value = value.rjust(block["length"], " ")
     integer_block = {"bits": 6, "offset": 0}
-    custom_alphabeth = block["custom_alphabeth"]
     rev_custom_alphabeth = {val: key for key, val in block["custom_alphabeth"].items()}
     rev_space_map = {" ": 62}  # Maps spaces to +
     for letter in value:

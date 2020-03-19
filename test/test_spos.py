@@ -368,8 +368,8 @@ class TestBlock(SposTestCase):
                 "blocks": {"key": "array val 2", "type": "integer", "bits": 3,},
             },
         }
-        t = [[1, 2], [3, 4]]
-        a = "0b10010001010010011100"
+        t = [[1, 2], [3, 4, 5]]
+        a = "0b10010001010011011100101"
         self.assertEqual(spos.encode_block(t, block), a)
         self.assertEqual(spos.decode_block(a, block), t)
 

@@ -13,6 +13,7 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
+import math
 from .encoders import truncate_bits, encode_crc8
 
 
@@ -62,7 +63,9 @@ def decode_array(message, block, decode_message):
     """
     inner_block = block["blocks"]
     length_bits = block["bits"]
-    length = decode_integer(message[: length_bits + 2], {"bits": length_bits, "offset": 0},)
+    length = decode_integer(
+        message[: length_bits + 2], {"bits": length_bits, "offset": 0},
+    )
     values = []
     items = [inner_block for i in range(length)]
     if length > 0:
@@ -80,20 +83,20 @@ def decode_object(message, block, decode_message):
     return dict(zip(keys, values))
 
 
-def decode_string(message, block, alphabeth, decode_message):
+def decode_string(message, block, alphabeth):
     """
     Decodes a string value according to block specifications.
     """
-    integer_block = {
-        "type": "integer",
-        "key": "letter",
-        "bits": 6,
-        "offset": 0,
-    }
-    custom_alphabeth = block["custom_alphabeth"]
-    items = [integer_block for _ in range(block["length"])]
+    _alphabeth = alphabeth.copy()
+    _alphabeth.update(block["custom_alphabeth"])
     value = "".join(
-        [custom_alphabeth.get(i, alphabeth[i]) for i in decode_message(message, items)]
+        [
+            _alphabeth.get(index)
+            for index in [
+                decode_integer(message[2:][6 * i : 6 * (i + 1)], {"bits": 6, "offset": 0})
+                for i in range(len(message) // 6)
+            ]
+        ]
     )
     return value
 
@@ -104,25 +107,14 @@ def decode_steps(message, block):
     """
     steps = block["steps"]
     steps_names = block["steps_names"]
-    if len(steps_names) == 0:
-        steps_names = (
-            ["x<{0}".format(steps[0])]
-            + ["{0}<x<={1}".format(l, u) for l, u in zip(steps, steps[1:])]
-            + ["x>={0}".format(steps[0])]
-        )
     if len(steps_names) != len(steps) + 1:
         raise ValueError(
             "'steps_names' for block {0} has to have length 1 + len(steps).".format(
                 block["key"]
             )
         )
-    length = ([2 ** i >= len(steps) for i in range(7)] + [True]).index(True)
-    integer_block = {
-        "type": "integer",
-        "bits": length,
-        "offset": 0,
-    }
-    value = decode_integer(message, integer_block)
+    bits = math.ceil(math.log(len(block["steps_names"]), 2))
+    value = decode_integer(message, {"bits": bits, "offset": 0,})
     return steps_names[value]
 
 
@@ -131,13 +123,9 @@ def decode_categories(message, block):
     Decodes a categories value according to block specifications.
     """
     categories = block["categories"] + ["error"]
-    bits = ([2 ** i >= len(categories) for i in range(7)] + [True]).index(True)
-    integer_block = {
-        "type": "integer",
-        "bits": bits,
-        "offset": 0,
-    }
-    value = decode_integer(message, integer_block)
+    bits = math.ceil(math.log(len(block["categories"]), 2))
+
+    value = decode_integer(message, {"bits": bits, "offset": 0,})
     return categories[value]
 
 

@@ -14,6 +14,7 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 import copy
+import math
 from string import ascii_uppercase, ascii_lowercase, digits
 from . import encoders, decoders, validators
 
@@ -100,7 +101,7 @@ TYPES = {
             value, block, BASE64_REV_ALPHABETH
         ),
         "decoder": lambda value, block: decoders.decode_string(
-            value, block, BASE64_ALPHABETH, decode_message
+            value, block, BASE64_ALPHABETH
         ),
     },
     "steps": {
@@ -205,6 +206,13 @@ def fill_defaults(block):
     for s_key, opts in type_keys.get("optional", {}).items():
         if not s_key in block:
             block[s_key] = opts["default"]
+            if s_key == "steps_names":
+                steps = block["steps"]
+                block[s_key] = (
+                    ["x<{0}".format(steps[0])]
+                    + ["{0}<x<={1}".format(l, u) for l, u in zip(steps, steps[1:])]
+                    + ["x>={0}".format(steps[0])]
+                )
     return block
 
 
@@ -264,11 +272,9 @@ def encode_items(values, items):
     """
     messages = []
     if len(values) != len(items):
-        raise ValueError("Arrays 'values' and 'items' differ.")
+        raise ValueError("Arrays 'messages' and 'items' differ in length.")
     if len(values) == 0:
-        raise ValueError("Empty 'values' array")
-    if len(items) == 0:
-        raise ValueError("Empty 'items' array")
+        raise ValueError("Empty inputs for 'messages' and 'items'.")
     for value, block in zip(values, items):
         messages.append(encode_block(value, block))
     return messages
@@ -288,11 +294,9 @@ def decode_items(messages, items):
     values = []
     acc_message = "0b"
     if len(messages) != len(items):
-        raise ValueError("Arrays 'messages' and 'items' differ.")
+        raise ValueError("Arrays 'messages' and 'items' differ in length.")
     if len(messages) == 0:
-        raise ValueError("Empty 'messages' array")
-    if len(items) == 0:
-        raise ValueError("Empty 'items' array")
+        raise ValueError("Empty inputs for 'messages' and 'items'.")
     for message, block in zip(messages, items):
         acc_message += message[2:]
         if block["type"] == "crc8":
@@ -313,29 +317,13 @@ def decode_message(message, items):
     Returns:
         values (list): The list of values for the blocks.
     """
-    messages = split_messages(message, items)
-    return decode_items(messages, items)
-
-
-def split_messages(message, items):
-    """
-    Receives a concatenated message and breaks it into a list of
-    messages according to items.
-
-    Args:
-        message (str): Binary string of the concatenated messages.
-        items (list): A list of blocks.
-
-    Returns:
-        messages (list): A list of binary strings.
-    """
     messages = []
     message = message[2:]
     for block in items:
         bits = accumulate_bits(message, block)
         messages.append("0b" + message[:bits])
         message = message[bits:]
-    return messages
+    return decode_items(messages, items)
 
 
 def accumulate_bits(message, block):
@@ -361,22 +349,16 @@ def accumulate_bits(message, block):
     elif block["type"] == "array":
         bits = block["bits"]
         length = decoders.decode_integer(message[:bits], {"bits": bits, "offset": 0})
-        acc += length * accumulate_bits(message[:bits], block["blocks"])
+        acc += length * accumulate_bits(message[bits:], block["blocks"])
     elif block["type"] == "object":
         for b in block["items"]:
             bits = accumulate_bits(message, b)
             message = message[bits:]
             acc += bits
     elif block["type"] == "steps":
-        bits = (
-            [2 ** i >= (len(block["steps_names"])) for i in range(7)] + [True]
-        ).index(True)
-        acc += bits
+        acc += math.ceil(math.log(len(block["steps_names"]), 2))
     elif block["type"] == "categories":
-        bits = (
-            [2 ** i >= (len(block["categories"]) + 1) for i in range(7)] + [True]
-        ).index(True)
-        acc += bits
+        acc += math.ceil(math.log(len(block["categories"]) + 1, 2))
     return acc
 
 
