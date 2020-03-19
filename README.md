@@ -21,6 +21,7 @@ import spos
 payload_spec = {
   "name": "example payload",
   "version": "1.0.0",
+  "crc8": False,
   "items": [{
     "type": "integer",
     "key": "payload_version",
@@ -51,6 +52,7 @@ import spos
 payload_spec = {
   "name": "example payload",
   "version": "1.0.0",
+  "crc8": False,
   "items": [{
     "type": "integer",
     "key": "payload_version",
@@ -105,6 +107,10 @@ Message name
 #### `version`
 
 Message version
+
+#### `crc8`
+
+If "True", calculates the [CRC8](https://en.wikipedia.org/wiki/Cyclic_redundancy_check) (8bits) for the message and appends it to payload.
 
 ## Block
 
@@ -313,13 +319,6 @@ Additional keys:
 
 - `categories` (array): The array of categories strings.
 
-#### `crc8`
-
-Calculates the [CRC8](https://en.wikipedia.org/wiki/Cyclic_redundancy_check)
-for the message. The size in bits for this `block` is always 8.
-
-Input: `None`.
-Additional keys: `None`.
 
 ## Functions
 
