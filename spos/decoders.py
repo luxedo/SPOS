@@ -135,5 +135,5 @@ def decode_crc8(message, block):
     """
     crc_dec = "0b" + message[-8:]
     message = message[:-8]
-    crc_enc = encode_crc8(message, block)
+    crc_enc = encode_crc8(message)
     return crc_dec == crc_enc

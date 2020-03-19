@@ -38,21 +38,15 @@ def validate_binary(value, block):
             )
         )
 
-
-def validate_crc8(value, block):
-    """
-    Validates a crc8 block.
-    """
-    validate_binary(value, block)
-    if value.startswith("0b") and (len(value[2:]) % 8 != 0):
-        raise ValueError(
-            "Binary string '{0}' must have an 8-multiple number of characters (bits)".format(
-                block["key"]
-            )
-        )
-    if value.startswith("0x") and (len(value[2:]) % 2 != 0):
-        raise ValueError(
-            "Hex string '{0}' must have a pair number of characters".format(
-                block["key"]
-            )
-        )
+# def validate_crc8(message):
+#     """
+#     Validates a message for creating a crc8.
+#     """
+#     if message.startswith("0b") and (len(message[2:]) % 8 != 0):
+#         raise ValueError(
+#             )
+#         )
+#     if message.startswith("0x") and (len(message[2:]) % 2 != 0):
+#         raise ValueError(
+#             )
+#         )

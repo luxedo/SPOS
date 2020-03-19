@@ -50,7 +50,6 @@ TYPES_KEYS = {
         "optional": {"steps_names": {"type": list, "default": []}},
     },
     "categories": {"required": {"categories": list},},
-    "crc8": {},
 }
 
 TYPES = {
@@ -116,7 +115,7 @@ TYPES = {
     },
     "crc8": {
         "input": str,
-        "validator": validators.validate_crc8,
+        #"validator": validators.validate_crc8,
         "encoder": encoders.encode_crc8,
         "decoder": decoders.decode_crc8,
     },
@@ -299,10 +298,7 @@ def decode_items(messages, items):
         raise ValueError("Empty inputs for 'messages' and 'items'.")
     for message, block in zip(messages, items):
         acc_message += message[2:]
-        if block["type"] == "crc8":
-            values.append(decode_block(acc_message, block))
-        else:
-            values.append(decode_block(message, block))
+        values.append(decode_block(message, block))
     return values
 
 
@@ -342,8 +338,6 @@ def accumulate_bits(message, block):
         acc += block["bits"]
     if block["type"] == "boolean":
         acc = 1
-    elif block["type"] == "crc8":
-        acc = 8
     elif block["type"] == "string":
         acc += block["length"] * 6
     elif block["type"] == "array":
@@ -376,7 +370,7 @@ def encode(payload_data, payload_spec):
     """
     values = []
     for block in payload_spec["items"]:
-        if block["type"] in ["crc8", "pad"]:
+        if block["type"] == "pad":      ## crc8 deleted
             values.append("0xff")
             continue
         if "key" not in block and "value" not in block:
@@ -391,9 +385,9 @@ def encode(payload_data, payload_spec):
     messages = encode_items(values, payload_spec["items"])
     partial_msg = "0b"
     for idx, block in enumerate(payload_spec["items"]):
-        if block["type"] == "crc8":
-            messages[idx] = encode_block(partial_msg, block)
         partial_msg += messages[idx][2:]
+    if payload_spec["crc8"]:
+        partial_msg = partial_msg + encoders.encode_crc8(partial_msg)   ## Later, use type_conf 
     return partial_msg
 
 

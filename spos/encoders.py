@@ -136,16 +136,18 @@ def encode_categories(value, block):
     return encode_integer(value, block)
 
 
-def encode_crc8(value, block):
+def encode_crc8(message):
     """
-    Encodes a categories value according to block specifications.
+    Creates an 8-bit CRC.
     """
-    if value.startswith("0x"):
-        value = bytes.fromhex(value[2:])
+    if message.startswith("0x"): 
+        pad = '0' * (len(message[2:]) % 8)
+        message = bytes.fromhex(pad + message[2:])
     else:
-        value = bytes.fromhex(hex(int(value, 2))[2:])
+        pad = '0' * (len(message[2:] % 2)
+        message = bytes.fromhex(pad + hex(int(message, 2))[2:])
     hasher = crc8.crc8()
-    hasher.update(value)
+    hasher.update(message)
     crc = bin(int(hasher.hexdigest(), 16))
     crc = "0b" + "{0:0>8}".format(crc[2:])
     return crc
