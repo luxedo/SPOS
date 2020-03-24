@@ -431,12 +431,11 @@ def create_crc8(message):
     Returns:
         crc8 (str): Binary string of the CRC8 hash for the message.
     """
-    if message.startswith("0x"):
-        pad = "0" * (len(message[2:]) % 2)
-        message = bytes.fromhex(pad + message[2:])
-    else:
-        pad = "0" * (len(message[2:]) % 8)
-        message = bytes.fromhex(pad + hex(int(message, 2))[2:])
+    if message.startswith("0b"):
+        _bytes = len(message[2:]) // 4
+        message = "0x" + "{:x}".format(int(message, 2)).rjust(_bytes, "0")
+    pad = "0" * (len(message[2:]) % 2)
+    message = bytes.fromhex(pad + message[2:])
     hasher = crc8.crc8()
     hasher.update(message)
     crc = bin(int(hasher.hexdigest(), 16))
@@ -456,8 +455,8 @@ def check_crc8(message):
         valid (bool): True if the message is valid.
     """
     if message.startswith("0x"):
-        pad = "0" * (len(message[2:]) % 8)
-        message = "0b" + pad + bin(int(message, 16))[2:]
+        bits = len(message[2:]) * 4
+        message = "0b" + "{0}".format(bin(int(message, 16))[2:]).rjust(bits, "0")
     crc_dec = "0b" + message[-8:]
     message = message[:-8]
     return create_crc8(message) == crc_dec

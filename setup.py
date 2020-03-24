@@ -20,7 +20,7 @@ with open("README.md", "r") as fp:
 
 setuptools.setup(
     name="spos",
-    version="1.0.0-a.3",
+    version="1.0.0-a.4",
     description="SPOS stands for Small Payload Object Serializer",
     long_description=long_description,
     long_description_content_type="text/markdown",
