@@ -143,9 +143,9 @@ A static value for the `block` (optional).
 
 #### `type`
 
-There are 11 types avaliable for serializing data: `boolean`, `binary`,
-`integer`, `float`, `pad`, `array`, `object`, `string`, `steps`,
-`categories`, and `crc8`.
+There are 10 types avaliable for serializing data: `boolean`, `binary`,
+`integer`, `float`, `pad`, `array`, `object`, `string`, `steps`, and
+`categories`.
 
 The basic types are:
 

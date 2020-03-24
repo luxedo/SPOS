@@ -14,7 +14,6 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 import math
-import crc8
 
 
 def encode_boolean(value, block):
@@ -137,23 +136,6 @@ def encode_categories(value, block):
     )
     block = {"bits": bits, "offset": 0}
     return encode_integer(value, block)
-
-
-def encode_crc8(message):
-    """
-    Creates an 8-bit CRC.
-    """
-    if message.startswith("0x"):
-        pad = "0" * (len(message[2:]) % 8)
-        message = bytes.fromhex(pad + message[2:])
-    else:
-        pad = "0" * (len(message[2:]) % 2)
-        message = bytes.fromhex(pad + hex(int(message, 2))[2:])
-    hasher = crc8.crc8()
-    hasher.update(message)
-    crc = bin(int(hasher.hexdigest(), 16))
-    crc = "0b" + "{0:0>8}".format(crc[2:])
-    return crc
 
 
 def truncate_bits(bit_str, bits):

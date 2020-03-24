@@ -598,25 +598,25 @@ class TestBlock(SposTestCase):
         self.assertEqual(spos.encode_block(t, block), a)
         self.assertEqual(spos.decode_block(a, block), t_dec)
 
-    # def test_crc_bin(self):
-    #     t = "0b1011110010110010"
-    #     a = "0b10100100"
-    #     b = "0b101111001011001010100100"
-    #     block = {"key": "crc BIN test", "type": "crc8"}
-    #     self.assertEqual(spos.encode_block(t, block), a)
-    #     self.assertEqual(spos.decode_block(b, block), True)
+    def test_crc_bin(self):
+        t = "0b1011110010110010"
+        a = "0b10100100"
+        b = "0b101111001011001010100100"
+        # block = {"key": "crc BIN test", "type": "crc8"}
+        self.assertEqual(spos.create_crc8(t), a)
+        self.assertEqual(spos.check_crc8(b), True)
 
-    # def test_crc_hex(self):
-    #     t = "0xABCD35"
-    #     a = "0b00101011"
-    #     b = "0b10101011110011010011010100101011"
-    #     block = {"key": "crc HEX test", "type": "crc8"}
-    #     self.assertEqual(spos.encode_block(t, block), a)
-    #     self.assertEqual(spos.decode_block(b, block), True)
+    def test_crc_hex(self):
+        t = "0xABCD35"
+        a = "0b00101011"
+        b = "0xABCD352B"
+        block = {"key": "crc HEX test", "type": "crc8"}
+        self.assertEqual(spos.create_crc8(t), a)
+        self.assertEqual(spos.check_crc8(b), True)
 
 
-class TestItems(SposTestCase):
-    def test_items(self):
+class TestEncodeDecodeItems(SposTestCase):
+    def test_encode_items(self):
         items = [
             {"key": "active", "type": "boolean"},
             {"key": "s3cr37", "type": "binary", "bits": 12},
@@ -699,6 +699,22 @@ class TestItems(SposTestCase):
         self.assertArray(encoded, a)
         decoded = spos.decode_items(a, items)
         self.assertArray(decoded, values_dec)
+
+    def test_encode_items_with_empty_inputs(self):
+        with self.assertRaises(ValueError):
+            spos.encode_items([], [])
+
+    def test_encode_items_with_different_input_lengths(self):
+        with self.assertRaises(ValueError):
+            spos.encode_items([1], [])
+
+    def test_decode_items_with_empty_inputs(self):
+        with self.assertRaises(ValueError):
+            spos.decode_items([], [])
+
+    def test_decode_items_with_different_input_lengths(self):
+        with self.assertRaises(ValueError):
+            spos.decode_items([1], [])
 
 
 class TestEncodeDecode(SposTestCase):
@@ -890,6 +906,10 @@ class TestEncodeDecode(SposTestCase):
             dec = spos.bin_decode(enc, payload_spec)
             payload_data["msg_version"] = 1
             self.assertDict(dec, payload_data, 3)
+
+    def test_bin_encode_without_key_or_value(self):
+        with self.assertRaises(KeyError):
+            spos.bin_encode({}, {"items": [{"type": "boolean"}]})
 
     def test_hex_encode_decode_0(self):
         payload_data = {"holy": "grail", "buffer": [1, 2], "date": 0.98}

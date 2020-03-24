@@ -14,7 +14,7 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 import math
-from .encoders import truncate_bits, encode_crc8
+from .encoders import truncate_bits
 
 
 def decode_boolean(message, block):
@@ -122,13 +122,3 @@ def decode_categories(message, block):
     bits = math.ceil(math.log(len(block["categories"]), 2))
     value = decode_integer(message, {"bits": bits, "offset": 0,})
     return categories[value]
-
-
-def decode_crc8(message, block):
-    """
-    Decodes a crc value according to block specifications.
-    """
-    crc_dec = "0b" + message[-8:]
-    message = message[:-8]
-    crc_enc = encode_crc8(message)
-    return crc_dec == crc_enc

@@ -16,6 +16,9 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 import copy
 import math
 from string import ascii_uppercase, ascii_lowercase, digits
+
+import crc8
+
 from . import encoders, decoders, validators
 
 
@@ -188,9 +191,7 @@ def validate_block(block, parent="root"):
     for key in block:
         if key not in allowed_keys:
             raise KeyError(
-                "Block '{0}' has an unexpected key '{1}'.".format(
-                    block["key"], key
-                )
+                "Block '{0}' has an unexpected key '{1}'.".format(block["key"], key)
             )
 
 
@@ -393,7 +394,7 @@ def bin_encode(payload_data, payload_spec):
 
     partial_msg += "0" * ((8 - (len(partial_msg[2:]) % 8)) % 8)
     if payload_spec.get("crc8"):
-        partial_msg = partial_msg + encoders.encode_crc8(partial_msg)[2:]
+        partial_msg = partial_msg + create_crc8(partial_msg)[2:]
     return partial_msg
 
 
@@ -413,12 +414,53 @@ def bin_decode(message, payload_spec):
     keys = [block["key"] for block in items]
     payload_data = dict(zip(keys, values))
     if payload_spec.get("crc8"):
-        message, crc_msg = message[:-8], "0b" + message[-8:]
-        payload_data["crc8"] = encoders.encode_crc8(message) == crc_msg
+        payload_data["crc8"] = check_crc8(message)
     for key, block in zip(keys, items):
         if block["type"] == "pad" and key in payload_data:
             del payload_data[key]
     return payload_data
+
+
+def create_crc8(message):
+    """
+    Creates an 8-bit CRC.
+
+    Args:
+        message (str): Binary or hex string of the message.
+
+    Returns:
+        crc8 (str): Binary string of the CRC8 hash for the message.
+    """
+    if message.startswith("0x"):
+        pad = "0" * (len(message[2:]) % 2)
+        message = bytes.fromhex(pad + message[2:])
+    else:
+        pad = "0" * (len(message[2:]) % 8)
+        message = bytes.fromhex(pad + hex(int(message, 2))[2:])
+    hasher = crc8.crc8()
+    hasher.update(message)
+    crc = bin(int(hasher.hexdigest(), 16))
+    crc = "0b" + "{0:0>8}".format(crc[2:])
+    return crc
+
+
+def check_crc8(message):
+    """
+    Checks if the message is valid. The last byte of the message must
+    be the CRC8 hash of the previous data.
+
+    Args:
+        message (str): Binary or hex string of the message.
+
+    Returns:
+        valid (bool): True if the message is valid.
+    """
+    if message.startswith("0x"):
+        pad = "0" * (len(message[2:]) % 8)
+        message = "0b" + pad + bin(int(message, 16))[2:]
+    crc_dec = "0b" + message[-8:]
+    message = message[:-8]
+    return create_crc8(message) == crc_dec
 
 
 def hex_encode(payload_data, payload_spec):
