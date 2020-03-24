@@ -118,9 +118,10 @@ def encode_steps(value, block):
     Encodes a steps value according to block specifications.
     """
     steps = block["steps"]
-    length = ([2 ** i >= len(steps) for i in range(7)] + [True]).index(True)
+    # length = ([2 ** i >= len(steps) for i in range(7)] + [True]).index(True)
+    bits = math.ceil(math.log(len(steps) + 1, 2))
     value = ([value >= s for s in steps] + [False]).index(False)
-    block = {"bits": length, "offset": 0}
+    block = {"bits": bits, "offset": 0}
     return encode_integer(value, block)
 
 
@@ -128,10 +129,12 @@ def encode_categories(value, block):
     """
     Encodes a categories value according to block specifications.
     """
-    categories = block["categories"] + ["error"]
-    bits = ([2 ** i >= len(categories) for i in range(7)] + [True]).index(True)
-    value = value if value in categories else "error"
-    value = categories.index(value)
+    bits = math.ceil(math.log(len(block["categories"]) + 1, 2))
+    value = (
+        len(block["categories"])
+        if value not in block["categories"]
+        else block["categories"].index(value)
+    )
     block = {"bits": bits, "offset": 0}
     return encode_integer(value, block)
 

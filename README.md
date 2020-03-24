@@ -76,6 +76,12 @@ payload_data = spos.bin_decode(message, payload_spec)
 }
 ```
 
+## Installation
+
+```
+pip install spos
+```
+
 ## Payload Specification
 
 The payload specification must contain the key `items`, which must be

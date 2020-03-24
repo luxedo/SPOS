@@ -525,7 +525,7 @@ class TestBlock(SposTestCase):
         }
         t = 1
         a = "0b01"
-        t_dec = "0<x<=5"
+        t_dec = "0<=x<5"
         self.assertEqual(spos.encode_block(t, block), a)
         self.assertEqual(spos.decode_block(a, block), t_dec)
 
@@ -561,9 +561,8 @@ class TestBlock(SposTestCase):
         }
         t = "low"
         a = "0b001"
-        t_dec = "low"
         self.assertEqual(spos.encode_block(t, block), a)
-        self.assertEqual(spos.decode_block(a, block), t_dec)
+        self.assertEqual(spos.decode_block(a, block), t)
 
     def test_categories_block_2(self):
         block = {
@@ -573,9 +572,8 @@ class TestBlock(SposTestCase):
         }
         t = "charged"
         a = "0b010"
-        t_dec = "charged"
         self.assertEqual(spos.encode_block(t, block), a)
-        self.assertEqual(spos.decode_block(a, block), t_dec)
+        self.assertEqual(spos.decode_block(a, block), t)
 
     def test_categories_block_3(self):
         block = {
@@ -585,9 +583,8 @@ class TestBlock(SposTestCase):
         }
         t = "full"
         a = "0b011"
-        t_dec = "full"
         self.assertEqual(spos.encode_block(t, block), a)
-        self.assertEqual(spos.decode_block(a, block), t_dec)
+        self.assertEqual(spos.decode_block(a, block), t)
 
     def test_categories_block_4(self):
         block = {

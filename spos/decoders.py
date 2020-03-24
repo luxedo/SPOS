@@ -109,12 +109,6 @@ def decode_steps(message, block):
     """
     steps = block["steps"]
     steps_names = block["steps_names"]
-    if len(steps_names) != len(steps) + 1:
-        raise ValueError(
-            "'steps_names' for block {0} has to have length 1 + len(steps).".format(
-                block["key"]
-            )
-        )
     bits = math.ceil(math.log(len(block["steps_names"]), 2))
     value = decode_integer(message, {"bits": bits, "offset": 0,})
     return steps_names[value]
@@ -126,7 +120,6 @@ def decode_categories(message, block):
     """
     categories = block["categories"] + ["error"]
     bits = math.ceil(math.log(len(block["categories"]), 2))
-
     value = decode_integer(message, {"bits": bits, "offset": 0,})
     return categories[value]
 

@@ -168,6 +168,16 @@ def validate_block(block, parent="root"):
                     parent, key, s_key, type(block[s_key]), opts["type"]
                 )
             )
+    if block["type"] == "steps":
+        if (
+            "steps_names" in block
+            and len(block["steps_names"]) != len(block["steps"]) + 1
+        ):
+            raise ValueError(
+                "'steps_names' for block {0} has to have length 1 + len(steps).".format(
+                    block["key"]
+                )
+            )
 
     # Check for unexpected keys
     allowed_keys = (
@@ -178,7 +188,7 @@ def validate_block(block, parent="root"):
     for key in block:
         if key not in allowed_keys:
             raise KeyError(
-                "Block '{0}' block has an unexpected key '{1}'.".format(
+                "Block '{0}' has an unexpected key '{1}'.".format(
                     block["key"], key
                 )
             )
@@ -203,7 +213,7 @@ def fill_defaults(block):
                 steps = block["steps"]
                 block[s_key] = (
                     ["x<{0}".format(steps[0])]
-                    + ["{0}<x<={1}".format(l, u) for l, u in zip(steps, steps[1:])]
+                    + ["{0}<=x<{1}".format(l, u) for l, u in zip(steps, steps[1:])]
                     + ["x>={0}".format(steps[0])]
                 )
     return block
