@@ -18,17 +18,17 @@ import argparse
 import json
 import sys
 
-from spos import hex_encode, hex_decode
+from spos import encode, decode
 
 
-def encode(infile, outfile, _payload_spec):
+def _encode(infile, outfile, _payload_spec):
     payload_data = json.load(infile)
     infile.close()
 
     payload_spec = json.load(_payload_spec)
     _payload_spec.close()
 
-    message = bytes(bytearray.fromhex(hex_encode(payload_data, payload_spec)[2:]))
+    message = encode(payload_data, payload_spec)
     if outfile.name == "<stdout>":
         sys.stdout.buffer.write(message)
     else:
@@ -36,7 +36,7 @@ def encode(infile, outfile, _payload_spec):
     outfile.close()
 
 
-def decode(infile, outfile, _payload_spec):
+def _decode(infile, outfile, _payload_spec):
     if infile.name == "<stdin>":
         message = sys.stdin.buffer.read()
     else:
@@ -46,8 +46,7 @@ def decode(infile, outfile, _payload_spec):
     payload_spec = json.load(_payload_spec)
     _payload_spec.close()
 
-    message = "0x" + message.hex()
-    payload_data = hex_decode(message, payload_spec)
+    payload_data = decode(message, payload_spec)
     outfile.write(json.dumps(payload_data, indent=2))
     outfile.close()
 
@@ -82,6 +81,6 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
     if args.decode:
-        decode(args.infile, args.outfile, args.payload_spec)
+        _decode(args.infile, args.outfile, args.payload_spec)
     else:
-        encode(args.infile, args.outfile, args.payload_spec)
+        _encode(args.infile, args.outfile, args.payload_spec)

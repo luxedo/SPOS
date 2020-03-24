@@ -93,7 +93,9 @@ def decode_string(message, block, alphabeth):
         [
             _alphabeth.get(index)
             for index in [
-                decode_integer(message[2:][6 * i : 6 * (i + 1)], {"bits": 6, "offset": 0})
+                decode_integer(
+                    message[2:][6 * i : 6 * (i + 1)], {"bits": 6, "offset": 0}
+                )
                 for i in range(len(message) // 6)
             ]
         ]

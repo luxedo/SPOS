@@ -38,6 +38,7 @@ def validate_binary(value, block):
             )
         )
 
+
 # def validate_crc8(message):
 #     """
 #     Validates a message for creating a crc8.

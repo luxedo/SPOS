@@ -601,21 +601,21 @@ class TestBlock(SposTestCase):
         self.assertEqual(spos.encode_block(t, block), a)
         self.assertEqual(spos.decode_block(a, block), t_dec)
 
-    def test_crc_bin(self):
-        t = "0b1011110010110010"
-        a = "0b10100100"
-        b = "0b101111001011001010100100"
-        block = {"key": "crc BIN test", "type": "crc8"}
-        self.assertEqual(spos.encode_block(t, block), a)
-        self.assertEqual(spos.decode_block(b, block), True)
+    # def test_crc_bin(self):
+    #     t = "0b1011110010110010"
+    #     a = "0b10100100"
+    #     b = "0b101111001011001010100100"
+    #     block = {"key": "crc BIN test", "type": "crc8"}
+    #     self.assertEqual(spos.encode_block(t, block), a)
+    #     self.assertEqual(spos.decode_block(b, block), True)
 
-    def test_crc_hex(self):
-        t = "0xABCD35"
-        a = "0b00101011"
-        b = "0b10101011110011010011010100101011"
-        block = {"key": "crc HEX test", "type": "crc8"}
-        self.assertEqual(spos.encode_block(t, block), a)
-        self.assertEqual(spos.decode_block(b, block), True)
+    # def test_crc_hex(self):
+    #     t = "0xABCD35"
+    #     a = "0b00101011"
+    #     b = "0b10101011110011010011010100101011"
+    #     block = {"key": "crc HEX test", "type": "crc8"}
+    #     self.assertEqual(spos.encode_block(t, block), a)
+    #     self.assertEqual(spos.decode_block(b, block), True)
 
 
 class TestItems(SposTestCase):
@@ -705,11 +705,12 @@ class TestItems(SposTestCase):
 
 
 class TestEncodeDecode(SposTestCase):
-    def test_encode_decode_0(self):
+    def test_bin_encode_decode_0(self):
         payload_data = {"holy": "grail", "buffer": [1, 2, 3, 4], "date": 0.98}
         payload_spec = {
             "name": "test encode",
             "version": 1,
+            "crc8": True,
             "items": [
                 {"key": "holy", "type": "string", "length": 10,},
                 {"key": "version", "type": "integer", "value": 1, "bits": 6,},
@@ -720,7 +721,6 @@ class TestEncodeDecode(SposTestCase):
                     "blocks": {"key": "buf_val", "type": "integer", "bits": 8,},
                 },
                 {"key": "date", "type": "float", "bits": 6,},
-                {"key": "crc", "type": "crc8"},
             ],
         }
         encoded = "0b111110111110111110111110111110100000101011011010100010100101000001000001000000000100000010000000110000010011111010000100"
@@ -729,14 +729,14 @@ class TestEncodeDecode(SposTestCase):
             "version": 1,
             "buffer": [1, 2, 3, 4],
             "date": 0.98,
-            "crc": True,
+            "crc8": True,
         }
-        enc = spos.encode(payload_data, payload_spec)
+        enc = spos.bin_encode(payload_data, payload_spec)
         self.assertEqual(enc, encoded)
-        dec = spos.decode(encoded, payload_spec)
+        dec = spos.bin_decode(encoded, payload_spec)
         self.assertDict(dec, decoded)
 
-    def test_encode_decode_1(self):
+    def test_bin_encode_decode_1(self):
         payloads = [
             {
                 "sent_yesterday": 0,
@@ -798,6 +798,7 @@ class TestEncodeDecode(SposTestCase):
         payload_spec = {
             "name": "test payload 2",
             "version": 2,
+            "crc8": True,
             "items": [
                 {"key": "pad", "type": "pad", "bits": 5},
                 {"key": "msg_version", "type": "integer", "value": 2, "bits": 6,},
@@ -827,13 +828,12 @@ class TestEncodeDecode(SposTestCase):
                 {"key": "count_cos", "type": "integer", "bits": 6,},
                 {"key": "count_fru", "type": "integer", "bits": 6,},
                 {"key": "count_sac", "type": "integer", "bits": 6,},
-                {"key": "crc8", "type": "crc8"},
             ],
         }
 
         for payload_data in payloads:
-            enc = spos.encode(payload_data, payload_spec)
-            dec = spos.decode(enc, payload_spec)
+            enc = spos.bin_encode(payload_data, payload_spec)
+            dec = spos.bin_decode(enc, payload_spec)
             payload_data["sent_yesterday"] = bool(payload_data["sent_yesterday"])
             payload_data["crc8"] = True
             payload_data["msg_version"] = 2
@@ -842,7 +842,7 @@ class TestEncodeDecode(SposTestCase):
             del dec["rpi_temperature"], payload_data["rpi_temperature"]
             self.assertDict(dec, payload_data, 3)
 
-    def test_encode_decode_2(self):
+    def test_bin_encode_decode_2(self):
         payloads = [
             {
                 "confidences": [0.9, 0.8, 0.7],
@@ -889,8 +889,8 @@ class TestEncodeDecode(SposTestCase):
             ]
         }
         for payload_data in payloads:
-            enc = spos.encode(payload_data, payload_spec)
-            dec = spos.decode(enc, payload_spec)
+            enc = spos.bin_encode(payload_data, payload_spec)
+            dec = spos.bin_decode(enc, payload_spec)
             payload_data["msg_version"] = 1
             self.assertDict(dec, payload_data, 3)
 
@@ -918,6 +918,37 @@ class TestEncodeDecode(SposTestCase):
         }
         enc = spos.hex_encode(payload_data, payload_spec)
         dec = spos.hex_decode(enc, payload_spec)
+        self.assertDict(dec, decoded)
+
+    def test_encode_decode_0(self):
+        payload_data = {"holy": "grail", "buffer": [1, 2, 3, 4], "date": 0.98}
+        payload_spec = {
+            "name": "test encode",
+            "version": 1,
+            "crc8": True,
+            "items": [
+                {"key": "holy", "type": "string", "length": 10,},
+                {"key": "version", "type": "integer", "value": 1, "bits": 6,},
+                {
+                    "key": "buffer",
+                    "type": "array",
+                    "bits": 8,
+                    "blocks": {"key": "buf_val", "type": "integer", "bits": 8,},
+                },
+                {"key": "date", "type": "float", "bits": 6,},
+            ],
+        }
+        encoded = b"\xfb\xef\xbe\xfa\n\xda\x8aPA\x00@\x80\xc1>\x84"
+        decoded = {
+            "holy": "+++++grail",
+            "version": 1,
+            "buffer": [1, 2, 3, 4],
+            "date": 0.98,
+            "crc8": True,
+        }
+        enc = spos.encode(payload_data, payload_spec)
+        self.assertEqual(enc, encoded)
+        dec = spos.decode(encoded, payload_spec)
         self.assertDict(dec, decoded)
 
 

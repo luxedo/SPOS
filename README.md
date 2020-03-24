@@ -41,7 +41,7 @@ payload_data = {
   "float_data": 0.6  # 010011 (19/32 or 0.59375)
 }
 
-message = spos.encode(payload_data, payload_spec)
+message = spos.bin_encode(payload_data, payload_spec)
 "0b01001101010011"
 ```
 
@@ -68,7 +68,7 @@ payload_spec = {
     "bits": 6
 }]
 message = "0b01001101010011"
-payload_data = spos.decode(message, payload_spec)
+payload_data = spos.bin_decode(message, payload_spec)
 {
   "payload_version": 1,
   "int_data": 13,

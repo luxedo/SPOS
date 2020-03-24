@@ -140,11 +140,11 @@ def encode_crc8(message):
     """
     Creates an 8-bit CRC.
     """
-    if message.startswith("0x"): 
-        pad = '0' * (len(message[2:]) % 8)
+    if message.startswith("0x"):
+        pad = "0" * (len(message[2:]) % 8)
         message = bytes.fromhex(pad + message[2:])
     else:
-        pad = '0' * (len(message[2:] % 2)
+        pad = "0" * (len(message[2:]) % 2)
         message = bytes.fromhex(pad + hex(int(message, 2))[2:])
     hasher = crc8.crc8()
     hasher.update(message)

@@ -113,12 +113,6 @@ TYPES = {
         "encoder": encoders.encode_categories,
         "decoder": decoders.decode_categories,
     },
-    "crc8": {
-        "input": str,
-        #"validator": validators.validate_crc8,
-        "encoder": encoders.encode_crc8,
-        "decoder": decoders.decode_crc8,
-    },
 }
 
 BASE64_ALPHABETH = dict(enumerate(ascii_uppercase + ascii_lowercase + digits + "+/"))
@@ -356,7 +350,7 @@ def accumulate_bits(message, block):
     return acc
 
 
-def encode(payload_data, payload_spec):
+def bin_encode(payload_data, payload_spec):
     """
     Encodes a message from payload_data according to payload_spec.
     Returns the message as a binary string.
@@ -370,8 +364,8 @@ def encode(payload_data, payload_spec):
     """
     values = []
     for block in payload_spec["items"]:
-        if block["type"] == "pad":      ## crc8 deleted
-            values.append("0xff")
+        if block["type"] == "pad":
+            values.append(None)  # Dummy value
             continue
         if "key" not in block and "value" not in block:
             raise KeyError(
@@ -386,12 +380,14 @@ def encode(payload_data, payload_spec):
     partial_msg = "0b"
     for idx, block in enumerate(payload_spec["items"]):
         partial_msg += messages[idx][2:]
-    if payload_spec["crc8"]:
-        partial_msg = partial_msg + encoders.encode_crc8(partial_msg)   ## Later, use type_conf 
+
+    partial_msg += "0" * ((8 - (len(partial_msg[2:]) % 8)) % 8)
+    if payload_spec.get("crc8"):
+        partial_msg = partial_msg + encoders.encode_crc8(partial_msg)[2:]
     return partial_msg
 
 
-def decode(message, payload_spec):
+def bin_decode(message, payload_spec):
     """
     Decodes a binary message according to payload_spec.
 
@@ -406,6 +402,9 @@ def decode(message, payload_spec):
     values = decode_message(message, items)
     keys = [block["key"] for block in items]
     payload_data = dict(zip(keys, values))
+    if payload_spec.get("crc8"):
+        message, crc_msg = message[:-8], "0b" + message[-8:]
+        payload_data["crc8"] = encoders.encode_crc8(message) == crc_msg
     for key, block in zip(keys, items):
         if block["type"] == "pad" and key in payload_data:
             del payload_data[key]
@@ -424,8 +423,8 @@ def hex_encode(payload_data, payload_spec):
     Returns:
         message (str): Binary string of the message.
     """
-    message = encode(payload_data, payload_spec)
-    message = message[2:] + "0" * (8 - (len(message) - 2) % 8)
+    message = bin_encode(payload_data, payload_spec)
+    message = message[2:]
     output = "0x"
     for i in range(len(message) // 8):
         output += "{0:02X}".format(int(message[8 * i : 8 * (i + 1)], 2))
@@ -446,4 +445,34 @@ def hex_decode(message, payload_spec):
     bits = len(message[2:]) * 4
     message = bin(int(message, 16))[2:]
     message = "0b" + message.zfill(bits)
-    return decode(message, payload_spec)
+    return bin_decode(message, payload_spec)
+
+
+def encode(payload_data, payload_spec):
+    """
+    Encodes a message from payload_data according to payload_spec.
+    Returns the message as bytes.
+
+    Args:
+        payload_data (dict): The list of values to encode.
+        payload_spec (dict): Payload specifications.
+
+    Returns:
+        message (bytes): Message.
+    """
+    return bytes(bytearray.fromhex(hex_encode(payload_data, payload_spec)[2:]))
+
+
+def decode(message, payload_spec):
+    """
+    Decodes an hex message according to payload_spec.
+
+    Args:
+        message (bytes): Message.
+        payload_spec (dict): Payload specifications.
+
+    Returns:
+        payload_data (dict): Payload data.
+    """
+    message = "0x" + message.hex()
+    return hex_decode(message, payload_spec)
