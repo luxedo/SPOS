@@ -1,0 +1,61 @@
+{
+  "name": "sat",
+  "version": 1,
+  "crc8": True,
+  "items": [
+    {
+      "key": "msg_version",
+      "type": "integer",
+      "bits": 6
+    },
+    {
+      "key": "sent_yesterday",
+      "type": "boolean"
+    },
+    {
+      "key": "temperature",
+      "type": "float",
+      "bits": 6,
+      "lower": 5,
+      "upper": 50
+    },
+    {
+        "key": "voltage",
+        "type": "float",
+        "bits": 6,
+        "lower": 10,
+        "upper": 13
+    },
+    {
+        "key": "rpi_temperature",
+        "type": "steps",
+        "steps": [30, 50, 75],
+        "steps_names": ["T<30", "30<T<50", "50<t<75", "T>75"]
+    },
+    {
+        "key": "results.count.armigera",
+        "type": "integer",
+        "bits": 6
+    },
+    {
+        "key": "results.count.eridania",
+        "type": "integer",
+        "bits": 6
+    },
+    {
+        "key": "results.count.cosmioides",
+        "type": "integer",
+        "bits": 6
+    },
+    {
+        "key": "results.count.frugiperda",
+        "type": "integer",
+        "bits": 6
+    },
+    {
+        "key": "results.count.saccharalis", 
+        "type": "integer", 
+        "bits": 6
+    }
+    ]
+}

@@ -306,7 +306,6 @@ def decode_items(messages, items):
         values.append(decode_block(message, block))
     return values
 
-
 def decode_message(message, items):
     """
     Decodes a concatenated message of multiple items.
@@ -321,6 +320,7 @@ def decode_message(message, items):
     messages = []
     message = message[2:]
     for block in items:
+        block = fill_defaults(block)
         bits = accumulate_bits(message, block)
         messages.append("0b" + message[:bits])
         message = message[bits:]
@@ -385,7 +385,7 @@ def bin_encode(payload_data, payload_spec):
         if "value" in block:
             values.append(block["value"])
         else:
-            values.append(payload_data[block["key"]])
+            values.append(encoders.get_subitem(block["key"], payload_data))
 
     messages = encode_items(values, payload_spec["items"])
     partial_msg = "0b"
