@@ -306,6 +306,7 @@ def decode_items(messages, items):
         values.append(decode_block(message, block))
     return values
 
+
 def decode_message(message, items):
     """
     Decodes a concatenated message of multiple items.
@@ -385,7 +386,7 @@ def bin_encode(payload_data, payload_spec):
         if "value" in block:
             values.append(block["value"])
         else:
-            values.append(encoders.get_subitem(block["key"], payload_data))
+            values.append(get_subitem(block["key"], payload_data))
 
     messages = encode_items(values, payload_spec["items"])
     partial_msg = "0b"
@@ -419,6 +420,26 @@ def bin_decode(message, payload_spec):
         if block["type"] == "pad" and key in payload_data:
             del payload_data[key]
     return payload_data
+
+
+def get_subitem(key, value):
+    """
+    Gets a subitem from "value" according to "key" layers. Eg:
+
+    get_subitem("key1.key2", {"key1": {"key2": True}}) Returns the
+    value of "key2" inside "key1".
+
+    Args:
+        key   (str): Key with items splitted with "." (eg "results.count.armigera")
+        value (arr): Array (or Dictionary) to be filtered
+
+    Returns:
+        value: Nested value according to key.
+    """
+    mask = key.split(".")
+    for sub in mask:
+        value = value[sub]
+    return value
 
 
 def create_crc8(message):

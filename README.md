@@ -136,6 +136,26 @@ value and underflow to the minimum.
 #### `key`
 
 The key to get the value of the `block` in `payload_data`.
+Optionally, the `key` can accesss a value in a nested object using a
+dot `.` to separate the levels. Eg:
+
+```javascript
+import spos
+payload_spec = {
+  "name": "example nested value",
+  "items": [{
+  "type": "integer",
+  "bits": 8,
+  "key": "nested.value"
+  }]
+payload_data = {
+  "nested": {
+    "value": 255
+  }
+}
+spos.bin_encode(payload_data, payload_spec)
+"0b11111111"
+```
 
 #### `value`
 
@@ -324,7 +344,6 @@ Input: `string`.
 Additional keys:
 
 - `categories` (array): The array of categories strings.
-
 
 ## Functions
 

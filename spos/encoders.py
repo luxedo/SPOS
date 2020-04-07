@@ -16,23 +16,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 import math
 
 
-def get_subitem(key, value):
-    """
-    Gets a subitem from "value" according to "key" layers
-    
-    Args:
-        key   (str): Key with items splitted with "." (eg "results.count.armigera")
-        value (arr): Array (or Dictionary) to be filtered
-
-    Returns:
-        value (???): Value may be an int, float, array... It depends on subitem's type.
-    """
-    mask = key.split(".")
-    for sub in mask:
-        value = value[sub]
-    return value
-
-
 def encode_boolean(value, block):
     """
     Encodes a boolean value according to block specifications.
