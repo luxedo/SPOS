@@ -1,10 +1,10 @@
 {
     "msg_version": 2,
-    "sent_yesterday": True,
+    "sent_yesterday": true,
     "temperature": 40,
     "voltage": 12,
     "rpi_temperature": 45,
-    "results": 
+    "results":
     {
         "count":
         {
@@ -24,5 +24,3 @@
         }
     }
 }
-
-

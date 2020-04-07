@@ -1,7 +1,7 @@
 {
   "name": "sat",
   "version": 1,
-  "crc8": True,
+  "crc8": true,
   "items": [
     {
       "key": "msg_version",
