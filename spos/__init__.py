@@ -19,7 +19,7 @@ from string import ascii_uppercase, ascii_lowercase, digits
 
 import crc8
 
-from . import encoders, decoders, validators
+from . import encoders, decoders, validators, payloader
 
 
 TYPES_KEYS = {
@@ -548,3 +548,15 @@ def decode(message, payload_spec):
     """
     message = "0x" + message.hex()
     return hex_decode(message, payload_spec)
+
+
+def random_payloads(prefix=".*", protocol=".*", version="v[0-9]+", directory="specs", amount=1, out="payloads", export=False):
+    specs = payloader.get_specs(directory, prefix, protocol, version)
+    payloads = {}
+    for spec in specs:
+        payloads[spec.filename] = []
+        for number in range(amount):
+            payload = payloader.Payload(spec, number, out)
+            payloads[spec.filename].append(payload)
+            if(export):
+                payload.export()
