@@ -7,9 +7,10 @@ import re
 import random
 import json
 
-#=============================================#
-#=============== CLASSES =====================#
-#=============================================#
+# =============================================#
+# =============== CLASSES =====================#
+# =============================================#
+
 
 class Spec:
     def __init__(self, directory, filename):
@@ -31,60 +32,60 @@ class Spec:
 
 class Payload:
     def __init__(self, spec, number, out):
-        self.spec   = spec
+        self.spec = spec
         self.number = number
         self.out = out
         self.payload = generate_payload(self.spec.spec)
 
     def export(self):
         dir = self.spec.protocol + "_" + self.spec.version
-        if (not os.path.exists(self.out)):
+        if not os.path.exists(self.out):
             os.mkdir(self.out)
             os.mkdir(os.path.join(self.out, dir))
-        elif (not os.path.exists(os.path.join(self.out, dir))):
+        elif not os.path.exists(os.path.join(self.out, dir)):
             os.mkdir(os.path.join(self.out, dir))
 
         with open(os.path.join(self.out, dir, str(self.number) + ".json"), "w") as fp:
             json.dump(self.payload, fp, indent=2)
 
-#============================================#
-#=============== FUNCTIONS ==================#
-#============================================#
-def generate_value(item):
+
+# ============================================#
+# =============== FUNCTIONS ==================#
+# ============================================#
+def generate_value(block):
     """
-    Generates a random value within item specifications
+    Generates a random value within block specifications
 
     Args:
         item (dict): Spec's item containing its type and aditional infos
                      May contain a predefined value.
-
     Returns:
         1) random (?): Generated random value
         or
-        2) value  (?): Predefined value given in spec
+        2) value  (?): Predefined value given in block
     """
-    if "value" in item:
-        return item["value"]
-    else:
-        if item["type"] == "boolean":
-            return random.randint(0,1)
+    if "value" in block:
+        return block["value"]
+    if block["type"] == "boolean":
+        return random.randint(0, 1)
 
-        elif item["type"] == "integer":
-            return random.randint(0, 2 ** item["bits"])
+    elif block["type"] == "integer":
+        return random.randint(0, 2 ** block["bits"])
 
-        elif item["type"] == "float":
-            if "lower" not in item:
-                lower = 0
-            else:
-                lower = item["lower"]
-            if "upper" not in item:
-                upper = 2 ** item["bits"]
-            else:
-                upper = item["upper"]
-            rand = lower - 1
-            while (rand < lower):
-                rand = random.random() * upper
-            return round(rand, 2)
+    elif block["type"] == "float":
+        if "lower" not in block:
+            lower = 0
+        else:
+            lower = block["lower"]
+        if "upper" not in block:
+            upper = 2 ** block["bits"]
+        else:
+            upper = block["upper"]
+        rand = lower - 1
+        while rand < lower:
+            rand = random.random() * upper
+        return round(rand, 2)
+
 
 def generate_payload(spec, object=False):
     """
@@ -109,8 +110,9 @@ def generate_payload(spec, object=False):
                     payload[item["key"]] = generate_payload(item, object=True)
     return payload
 
+
 def get_specs(directory=".", prefix=".*", protocol=".*", version="v[0-9]+"):
-    file_re = prefix + "_" + protocol + "_" + version + "\.json"
+    file_re = prefix + "_" + protocol + "_" + version + ".json"
     filenames = [file for file in os.listdir(directory) if re.match(file_re, file)]
     specs = []
     for filename in filenames:
