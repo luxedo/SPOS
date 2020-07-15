@@ -435,10 +435,16 @@ def get_subitem(key, value):
 
     Returns:
         value: Nested value according to key.
+
+    Raises:
+        KeyError: When value is not accessible by key.
     """
     mask = key.split(".")
     for sub in mask:
-        value = value[sub]
+        try:
+            value = value[sub]
+        except:
+            raise KeyError("Key: {0} is not present in value {1}.".format(sub, value))
     return value
 
 
