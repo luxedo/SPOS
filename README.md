@@ -20,9 +20,8 @@ To encode data, `SPOS` needs two arguments to serialize the data: The
 import spos
 payload_spec = {
   "name": "example payload",
-  "version": "1.0.0",
-  "crc8": False,
-  "items": [{
+  "version": 1,
+  "body": [{
     "type": "integer",
     "key": "payload_version",
     "value": 1,  # 01
@@ -51,9 +50,8 @@ Decoding data
 import spos
 payload_spec = {
   "name": "example payload",
-  "version": "1.0.0",
-  "crc8": False,
-  "items": [{
+  "version": 1,
+  "body": [{
     "type": "integer",
     "key": "payload_version",
     "value": 1,  # 01
@@ -84,39 +82,77 @@ pip install spos
 
 ## Payload Specification
 
-The payload specification must contain the key `items`, which must be
-an array containing objects that describe each `block` of the
-serialized message.
+The payload specification consists of four main keys: `name`, `version`,
+`meta`, an optional key witch describes properties of the payload and
+`body` which describes the data being sent. Additional keys can be
+provided and will be inserted in the decoded message.
 
 ```python
 payload_spec = {
-  "items": [{
+  "name": "my payload",
+  "version": 1
+  "meta": {
+    "send_version": True,
+    "version_bits": 4,
+    "crc8": True,
+    "header": [{
+      "type": "integer",
+      "key": "meaning",
+      "value": 42
+    }]
+  },
+  "body": [{
     "type:": "integer",
     "key": "temperature",
     "bits": 6,
     "offset": 273
-}]}
+  }],
+  "my_key": "additional data"
+}
 ```
 
-Additional keys can be provided and keys not listed are ignored.
+### Name
 
-### Payload Specification keys
+The name should be a string that briefly describes the payload.
 
-#### `items`
+### Version
 
-The array of `blocks` describing the message.
+An integer representing message version.
 
-#### `name`
+### Meta
 
-Message name
+Some properties may be added to the payload, this is done by
+configuring flags in the `meta` object. The following keys are
+allowed:
 
-#### `version`
+#### `send_version`
 
-Message version
+`SPOS` will send the version as the first block of the message if set to
+`True`. This is useful when handling multiple messages with different
+versions. If this flag is set, `version_bits` becomess a required
+key.
+
+#### `version_bits`
+
+An intege that sets the number of bits used to encode the version in
+the header of the message.
 
 #### `crc8`
 
-If "True", calculates the [CRC8](https://en.wikipedia.org/wiki/Cyclic_redundancy_check) (8bits) for the message and appends it to payload.
+If `True`, calculates the [CRC8](https://en.wikipedia.org/wiki/Cyclic_redundancy_check)
+(8bits) for the message and appends it to payload. The decoder also
+checks if the CRC8 is valid.
+
+#### `header`
+
+The `header` should be an array of [blocks](#Block) which we call
+`blocklist`. It has no much difference from `body` other than
+isolate the payload data from any metadata.
+
+#### `body`
+
+The `body` should be an array of [blocks](#Block) describing each
+section of the serialized message.
 
 ## Block
 
@@ -125,28 +161,30 @@ an optional key. For each `type` there might be aditional required keys
 and/or optional keys.
 
 The value to be encoded is either a `key` in the `payload_data` object or
-a statuc `value` if present.
+a statuc `value` if present, this `value` is not sent in the payload.
 
-The encoded data is _big-endian_ and truncations occour in the least
-significant bits when applicable. Data overflow is set to the maximum
-value and underflow to the minimum.
+The encoded data is _big-endian_ and truncations of data may occour in
+the least significant bits when applicable. Data overflow is set to
+the maximum value and underflow to the minimum.
+
+---
 
 ### Block keys
 
 #### `key`
 
-The key to get the value of the `block` in `payload_data`.
-Optionally, the `key` can accesss a value in a nested object using a
+The key is used to get the value for the `block` in `payload_data`.
+Optionally, the `key` can accesss a value in a nested objects using a
 dot `.` to separate the levels. Eg:
 
 ```javascript
 import spos
 payload_spec = {
   "name": "example nested value",
-  "items": [{
-  "type": "integer",
-  "bits": 8,
-  "key": "nested.value"
+  "body": [{
+    "type": "integer",
+    "bits": 8,
+    "key": "nested.value"
   }]
 payload_data = {
   "nested": {
@@ -163,20 +201,24 @@ A static value for the `block` (optional).
 
 #### `type`
 
-There are 10 types avaliable for serializing data: `boolean`, `binary`,
+There are avaliable 10 types for serializing data: `boolean`, `binary`,
 `integer`, `float`, `pad`, `array`, `object`, `string`, `steps`, and
 `categories`.
 
+---
+
+### Types
+
 The basic types are:
 
-##### `boolean`
+### `boolean`
 
 Boolean value.
 
 Input: `boolean`.
 Additional keys: `None`.
 
-##### `binary`
+#### `binary`
 
 Binary value. The data can be a binary string or an hex string. Eg
 
@@ -193,7 +235,7 @@ Additional keys:
 
 - `bits` (int): length of the block in bits
 
-##### `integer`
+### `integer`
 
 Integer value.
 
@@ -203,7 +245,7 @@ Additional key:
 - `bits` (int): length of the block in bits
 - `offset` (int): An integer to offset the final value. Default: 0.
 
-##### `float`
+### `float`
 
 Float value.
 
@@ -220,7 +262,7 @@ Additional keys:
 - `upper` (int|float), optional: Float upper boundary. Default 1.
 - `approximation` (str), optional: Float approximation method. Values can be: "round", "floor", "ceil". Default: "round"
 
-##### `pad`
+#### `pad`
 
 Pads the message. No data is collected from this block.
 
@@ -233,7 +275,7 @@ Additional keys:
 
 Advanced types:
 
-##### `array`
+#### `array`
 
 An array containing `block` values.
 
@@ -245,7 +287,7 @@ Additional keys:
 - `bits` (int): Number of bits to store the maximum length of the array.
 - `blocks` (block): The `block` specification of the objects in the array.
 
-##### `object`
+#### `object`
 
 Object value. Maps the data to an object.
 
@@ -255,9 +297,9 @@ for this `block`.
 Input: `object`.
 Additional keys:
 
-- `items` (items): The `array` of `blocks` describing the object.
+- `blocklist` (blocklist): The `array` of `blocks` describing the object.
 
-##### `string`
+#### `string`
 
 String value.
 
@@ -278,7 +320,7 @@ Additional keys:
 
 ```python
 payload_spec = {
-  "items": [{
+  "body": [{
     "type:": "string",
     "key": "text",
     "length": 128,
@@ -295,13 +337,13 @@ payload_spec = {
 
 ```
 
-#### `steps`
+### `steps`
 
 Maps a numeric value to named steps. Eg:
 
 ```python
 payload_spec = {
-  "items": [{
+  "body": [{
     "type:": "steps",
     "key": "battery",
     "steps": [0.1, 0.6, 0.95],
@@ -321,13 +363,13 @@ Additional keys:
 - `steps_names` (array), optional: Names for each step. If not provided the names
   are created based on steps.
 
-#### `categories`
+### `categories`
 
 Maps strings to categories: Eg:
 
 ```python
 payload_spec = {
-  "items": [{
+  "body": [{
     "type:": "categories",
     "key": "color",
     "categories": ["red", "green", "blue", "iridescent"],
@@ -345,7 +387,7 @@ Additional keys:
 
 - `categories` (array): The array of categories strings.
 
-## Functions
+## Encode and Decode Functions
 
 ```python
 def encode(payload_data, payload_spec):
@@ -405,6 +447,57 @@ def hex_decode(message, payload_spec):
         payload_data (dict): Payload data.
     """
 ```
+
+```python
+def bin_encode(payload_data, payload_spec):
+    """
+    Encodes a message from payload_data according to payload_spec.
+    Returns the message as a binary string.
+
+    Args:
+        payload_data (dict): The list of values to encode.
+        payload_spec (dict): Payload specifications.
+
+    Returns:
+        message (str): Binary string of the message.
+    """
+```
+
+```python
+def bin_decode(message, payload_spec):
+    """
+    Decodes a binary message according to payload_spec.
+
+    Args:
+        message (str): Binary string of the message.
+        payload_spec (dict): Payload specifications.
+
+    Returns:
+        payload_data (dict): Payload data.
+    """
+```
+
+## Decoding messages of multiple versions
+
+One possible use case of `SPOS` is to use the same bus to send messages
+of different versions. If this is the case, `SPOS` will send the version
+in the beggining of the message and the receiver can decode with an
+array of expected payload specifications.
+
+```
+specs = [
+    payload_spec_0,
+    payload_spec_1,
+    payload_spec_2,
+    payload_spec_3,
+    payload_spec_4,
+]
+payload_data = spos.decode_from_specs(message, specs)
+```
+
+To do this, all payload specifications must set `send_version` to
+`True` and set the same ammounts of `version_bits`. There must be
+only one specification for each version.
 
 ## Command line usage
 
