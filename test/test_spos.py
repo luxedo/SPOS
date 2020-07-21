@@ -13,706 +13,255 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
-import unittest
-from spos.encoders import truncate_bits
+from spos.blocks import truncate_bits
+from . import TestCase
 import spos
 
 
-class SposTestCase(unittest.TestCase):
-    def assertClose(self, val1, val2, delta=0.01, error_msg=""):
-        error_msg = (
-            error_msg if error_msg else "Values {0} - {1} differ.".format(val1, val2)
-        )
-        self.assertTrue(abs(val1 - val2) < delta, error_msg)
-
-    def assertArray(self, arr1, arr2, delta=0.01, error_msg=""):
-        error_msg = (
-            error_msg if error_msg else "Arrays differ:\n{0}\n{1}".format(arr1, arr2)
-        )
-        self.assertEqual(len(arr1), len(arr2), error_msg)
-        for i, _ in enumerate(arr1):
-            if isinstance(arr1[i], float) or isinstance(arr2[i], float):
-                self.assertClose(arr1[i], arr2[i], delta, error_msg)
-            elif isinstance(arr1[i], dict):
-                self.assertDict(arr1[i], arr2[i], delta, error_msg)
-            else:
-                self.assertEqual(arr1[i], arr2[i], error_msg)
-
-    def assertDict(self, dict1, dict2, delta=0.01, error_msg=""):
-        error_msg = (
-            error_msg if error_msg else "Dicts differ:\n{0}\n{1}".format(dict1, dict2)
-        )
-        self.assertEqual(dict1.keys(), dict2.keys(), error_msg)
-        for key in dict1:
-            if isinstance(dict1[key], float) or isinstance(dict2[key], float):
-                self.assertClose(dict1[key], dict2[key], delta, error_msg)
-            elif isinstance(dict2[key], dict):
-                self.assertDict(dict1[key], dict2[key], delta, error_msg)
-            elif isinstance(dict2[key], list):
-                self.assertArray(dict1[key], dict2[key], delta, error_msg)
-            else:
-                self.assertEqual(dict1[key], dict2[key], error_msg)
-
-
-class TestValidateBlock(SposTestCase):
-    def test_key_not_in_block(self):
+class TestValidatePayloadSpec(TestCase):
+    def test_missing_version_key_error(self):
+        payload_spec = {
+            "name": "john",
+            "body": [{"key": "jon", "type": "bool"}],
+        }
         with self.assertRaises(KeyError):
-            block = {"type": "boolean"}
-            spos.validate_block(block)
+            spos.bin_encode({"jon", False}, payload_spec)
 
-    def test_key_value_not_a_string(self):
-        with self.assertRaises(TypeError):
-            block = {"type": "boolean", "key": True}
-            spos.validate_block(block)
-
-    def test_type_not_in_block(self):
+    def test_missing_name_key_error(self):
+        payload_spec = {
+            "version": 1,
+            "body": [{"key": "jon", "type": "bool"}],
+        }
         with self.assertRaises(KeyError):
-            block = {"key": "aloha"}
-            spos.validate_block(block)
+            spos.bin_encode({"jon", False}, payload_spec)
 
-    def test_undefined_type(self):
-        with self.assertRaises(ValueError):
-            block = {"key": "aloha", "type": "hakuna"}
-            spos.validate_block(block)
-
-    def test_missing_required_key(self):
+    def test_missing_body_key_error(self):
+        payload_spec = {
+            "name": "john",
+            "version": 1,
+        }
         with self.assertRaises(KeyError):
-            block = {"key": "aloha", "type": "integer"}
-            spos.validate_block(block)
+            spos.bin_encode({"jon", False}, payload_spec)
 
-    def test_wrong_type_for_required_key(self):
+    def test_version_value_type_error(self):
+        payload_spec = {
+            "name": "john",
+            "version": "wrong type",
+            "body": [{"key": "jon", "type": "boolean"}],
+        }
         with self.assertRaises(TypeError):
-            block = {"key": "aloha", "type": "integer", "bits": "mattata"}
-            spos.validate_block(block)
+            spos.bin_encode({"jon": False}, payload_spec)
 
-    def test_wrong_type_for_optional_key(self):
+    def test_name_value_type_error(self):
+        payload_spec = {
+            "name": 1,
+            "version": 1,
+            "body": [{"key": "jon", "type": "boolean"}],
+        }
         with self.assertRaises(TypeError):
-            block = {"key": "aloha", "type": "integer", "bits": 1, "offset": "mattata"}
-            spos.validate_block(block)
+            spos.bin_encode({"jon": False}, payload_spec)
 
-    def test_invalid_key(self):
-        with self.assertRaises(KeyError):
-            block = {"key": "aloha", "type": "integer", "bits": 1, "mattata": "mattata"}
-            spos.validate_block(block)
-
-
-class TestBlock(SposTestCase):
-    def test_boolean_true(self):
-        block = {"key": "boolean encode true", "type": "boolean"}
-        t = True
-        a = "0b1"
-        self.assertEqual(spos.encode_block(t, block), a)
-        self.assertEqual(spos.decode_block(a, block), t)
-
-    def test_boolean_false(self):
-        block = {"key": "boolean false", "type": "boolean"}
-        t = False
-        a = "0b0"
-        self.assertEqual(spos.encode_block(t, block), a)
-        self.assertEqual(spos.decode_block(a, block), t)
-
-    def test_binary_block(self):
-        block = {"key": "binary bin", "type": "binary", "bits": 10}
-        t = "0b100101"
-        a = "0b0000100101"
-        self.assertEqual(spos.encode_block(t, block), a)
-        self.assertEqual(spos.decode_block(a, block), a)
-        self.assertEqual(spos.encode_block(a, block), a)
-
-    def test_binary_value_error(self):
-        with self.assertRaises(ValueError):
-            block = {
-                "key": "binary bin error",
-                "type": "binary",
-                "bits": 10,
-            }
-            spos.encode_block("0xfail", block)
-
-    def test_binary_hex(self):
-        block = {
-            "key": "binary large hex",
-            "type": "binary",
-            "bits": 10,
+    def test_body_value_type_error(self):
+        payload_spec = {
+            "name": "john",
+            "version": 1,
+            "body": {"key": "jon", "type": "boolean"},
         }
-        t = "0xdeadbeef"
-        a = bin(int(t, 16))[:12]
-        self.assertEqual(spos.encode_block(t, block), a)
-        self.assertEqual(spos.decode_block(a, block), a)
-
-    def test_binary_small_hex(self):
-        block = {
-            "key": "binary small hex",
-            "type": "binary",
-            "bits": 10,
-        }
-        t = "0xff"
-        a = truncate_bits(bin(int(t, 16))[:12], block["bits"])
-        self.assertEqual(spos.encode_block(t, block), a)
-
-    def test_binary_hex_value_error(self):
-        with self.assertRaises(ValueError):
-            block = {
-                "key": "binary hex fail",
-                "type": "binary",
-                "bits": 10,
-            }
-            spos.encode_block("0xfail", block)
-
-    def test_binary_type_error(self):
         with self.assertRaises(TypeError):
-            block = {
-                "key": "binary type fail",
-                "type": "binary",
-                "bits": 10,
-            }
-            spos.encode_block("fail", block)
+            spos.bin_encode({"jon": False}, payload_spec)
 
-    def test_integer_block(self):
-        block = {
-            "key": "integer test",
-            "type": "integer",
-            "bits": 6,
-        }
-        t = 1
-        a = "0b000001"
-        self.assertEqual(spos.encode_block(t, block), a)
-        self.assertEqual(spos.decode_block(a, block), t)
-
-    def test_integer_type_error(self):
-        with self.assertRaises(TypeError):
-            block = {
-                "key": "integer fail",
-                "type": "integer",
-                "bits": 6,
-            }
-            spos.encode_block("fail", block)
-
-    def test_integer_offset(self):
-        block = {
-            "key": "integer offset",
-            "type": "integer",
-            "bits": 6,
-            "offset": 100,
-        }
-        t = 120
-        a = "0b010100"
-        self.assertEqual(spos.encode_block(t, block), a)
-        self.assertEqual(spos.decode_block(a, block), t)
-
-    def test_integer_underflow(self):
-        block = {
-            "key": "integer underflow",
-            "type": "integer",
-            "bits": 6,
-        }
-        t = -10
-        a = "0b000000"
-        self.assertEqual(spos.encode_block(t, block), a)
-
-    def test_integer_overflow(self):
-        block = {
-            "key": "integer overflow",
-            "type": "integer",
-            "bits": 6,
-        }
-        t = 128
-        a = "0b111111"
-        self.assertEqual(spos.encode_block(t, block), a)
-
-    def test_float_block(self):
-        block = {"key": "float test", "type": "float", "bits": 2}
-        t = 0.66
-        a = "0b10"
-        self.assertEqual(spos.encode_block(t, block), a)
-        self.assertClose(spos.decode_block(a, block), t)
-
-    def test_float_type_error(self):
-        with self.assertRaises(TypeError):
-            block = {
-                "key": "float fail",
-                "type": "float",
-                "bits": 4,
-            }
-            spos.encode_block("fail", block)
-
-    def test_float_approximation_floor(self):
-        block = {
-            "key": "float approximation floor",
-            "type": "float",
-            "bits": 2,
-            "approximation": "floor",
-        }
-        t = 0.66
-        a = "0b01"
-        t_dec = 0.33
-        self.assertEqual(spos.encode_block(t, block), a)
-        self.assertClose(spos.decode_block(a, block), t_dec)
-
-    def test_float_approximation_ceil(self):
-        block = {
-            "key": "float approximation ceil",
-            "type": "float",
-            "bits": 2,
-            "approximation": "ceil",
-        }
-        t = 0.34
-        a = "0b10"
-        t_dec = 0.66
-        self.assertEqual(spos.encode_block(t, block), a)
-        self.assertClose(spos.decode_block(a, block), t_dec)
-
-    def test_float_upper(self):
-        block = {
-            "key": "float upper",
-            "type": "float",
-            "bits": 5,
-            "upper": 31,
-        }
-        t = 13
-        a = "0b01101"
-        self.assertEqual(spos.encode_block(t, block), a)
-        self.assertClose(spos.decode_block(a, block), t)
-
-    def test_float_lower(self):
-        block = {
-            "key": "float lower",
-            "type": "float",
-            "bits": 3,
-            "lower": -6,
-        }
-        t = -1
-        a = "0b101"
-        self.assertEqual(spos.encode_block(t, block), a)
-        self.assertClose(spos.decode_block(a, block), t)
-
-    def test_float_underflow(self):
-        block = {
-            "key": "float underflow",
-            "type": "float",
-            "bits": 6,
-        }
-        t = -10
-        a = "0b000000"
-        self.assertEqual(spos.encode_block(t, block), a)
-
-    def test_float_overflow(self):
-        block = {
-            "key": "float overflow",
-            "type": "float",
-            "bits": 6,
-        }
-        t = 10
-        a = "0b111111"
-        self.assertEqual(spos.encode_block(t, block), a)
-
-    def test_pad_block_2(self):
-        block = {"key": "pad test", "type": "pad", "bits": 2}
-        t = None
-        a = "0b11"
-        self.assertEqual(spos.encode_block(t, block), a)
-        self.assertEqual(spos.decode_block(a, block), t)
-
-    def test_pad_block_6(self):
-        block = {"key": "pad test", "type": "pad", "bits": 6}
-        t = None
-        a = "0b111111"
-        self.assertEqual(spos.encode_block(t, block), a)
-        self.assertEqual(spos.decode_block(a, block), t)
-
-    def test_array_block(self):
-        block = {
-            "key": "integer array",
-            "type": "array",
-            "bits": 3,
-            "blocks": {"key": "array val", "type": "integer", "bits": 3,},
-        }
-        t = [1, 2, 3, 4]
-        a = "0b100001010011100"
-        self.assertEqual(spos.encode_block(t, block), a)
-        self.assertEqual(spos.decode_block(a, block), t)
-
-    def test_array_truncate(self):
-        block = {
-            "key": "truncate array",
-            "type": "array",
-            "bits": 2,
-            "blocks": {"key": "array val", "type": "integer", "bits": 3,},
-        }
-        t = [1, 2, 3, 4, 5]
-        a = "0b11001010011"
-        t_dec = [1, 2, 3]
-        self.assertEqual(spos.encode_block(t, block), a)
-        self.assertEqual(spos.decode_block(a, block), t_dec)
-
-    def test_array_empty(self):
-        block = {
-            "key": "empty array",
-            "type": "array",
-            "bits": 7,
-            "blocks": {"key": "array val", "type": "integer", "bits": 3,},
-        }
-        t = []
-        a = "0b0000000"
-        self.assertEqual(spos.encode_block(t, block), a)
-        self.assertEqual(spos.decode_block(a, block), [])
-
-    def test_array_nested(self):
-        block = {
-            "key": "nested array",
-            "type": "array",
-            "bits": 2,
-            "blocks": {
-                "key": "array val 1",
-                "type": "array",
-                "bits": 3,
-                "blocks": {"key": "array val 2", "type": "integer", "bits": 3,},
-            },
-        }
-        t = [[1, 2], [3, 4, 5]]
-        a = "0b10010001010011011100101"
-        self.assertEqual(spos.encode_block(t, block), a)
-        self.assertEqual(spos.decode_block(a, block), t)
-
-    def test_object_block(self):
-        block = {
-            "key": "object",
-            "type": "object",
-            "items": [
-                {"key": "key1", "type": "integer", "bits": 3},
-                {"key": "key2", "type": "float", "bits": 5},
+    def test_body_dupliacte_key_error(self):
+        payload_spec = {
+            "name": "john",
+            "version": 1,
+            "body": [
+                {"key": "jon", "type": "boolean"},
+                {"key": "jon", "type": "binary", "bits": 10},
             ],
         }
-        t = {"key1": 6, "key2": 0.9}
-        a = "0b11011100"
-        self.assertEqual(spos.encode_block(t, block), a)
-        self.assertDict(spos.decode_block(a, block), t)
-
-    def test_object_nested(self):
-        block = {
-            "key": "object",
-            "type": "object",
-            "items": [
-                {"key": "key1", "type": "integer", "bits": 3},
-                {
-                    "key": "key2",
-                    "type": "object",
-                    "items": [
-                        {"key": "nKey", "type": "boolean"},
-                        {
-                            "key": "nKey2",
-                            "type": "object",
-                            "items": [{"key": "nKey3", "type": "float", "bits": 8,}],
-                        },
-                    ],
-                },
-            ],
-        }
-        t = {"key1": 6, "key2": {"nKey": False, "nKey2": {"nKey3": 0.8}}}
-        a = "0b110011001100"
-        j = spos.encode_block(t, block)
-        self.assertEqual(spos.encode_block(t, block), a)
-        self.assertDict(spos.decode_block(a, block), t)
-
-    def test_object_key_error(self):
         with self.assertRaises(KeyError):
-            block = {
-                "key": "object missing key",
-                "type": "object",
-                "items": [
-                    {"key": "key1", "type": "integer", "bits": 3},
-                    {"key": "key2", "type": "float", "bits": 5},
-                    {"key": "key3", "type": "boolean"},
-                ],
-            }
-            t = {"key1": 6, "key2": 0.9}
-            spos.encode_block(t, block)
+            spos.bin_encode({"jon": False}, payload_spec)
 
-    def test_string_block(self):
-        block = {
-            "key": "string",
-            "type": "string",
-            "length": 6,
+    def test_unexpected_keys(self):
+        payload_spec = {
+            "name": "john",
+            "version": 1,
+            "body": [{"key": "jon", "type": "boolean"},],
+            "extra": "key",
         }
-        t = "test"
-        a = "0b111110111110101101011110101100101101"
-        t_dec = "++test"
-        self.assertEqual(spos.encode_block(t, block), a)
-        self.assertEqual(spos.decode_block(a, block), t_dec)
-
-    def test_string_block_unknown_character(self):
-        block = {
-            "key": "string",
-            "type": "string",
-            "length": 6,
-        }
-        t = "test%"
-        a = "0b111110101101011110101100101101111111"
-        t_dec = "+test/"
-        self.assertEqual(spos.encode_block(t, block), a)
-        self.assertEqual(spos.decode_block(a, block), t_dec)
-
-    def test_string_custom_alphabeth(self):
-        block = {
-            "key": "string",
-            "type": "string",
-            "length": 6,
-            "custom_alphabeth": {62: " "},
-        }
-        t = "test"
-        a = "0b111110111110101101011110101100101101"
-        t_dec = "  test"
-        b = spos.encode_block(t, block)
-        self.assertEqual(spos.encode_block(t, block), a)
-        self.assertEqual(spos.decode_block(a, block), t_dec)
-
-    def test_steps_block(self):
-        block = {
-            "key": "steps",
-            "type": "steps",
-            "steps": [0, 5, 10],
-            "steps_names": ["critical", "low", "charged", "full"],
-        }
-        t = 2
-        a = "0b01"
-        t_dec = "low"
-        self.assertEqual(spos.encode_block(t, block), a)
-        self.assertEqual(spos.decode_block(a, block), t_dec)
-
-    def test_steps_index_0(self):
-        block = {
-            "key": "steps",
-            "type": "steps",
-            "steps": [0, 5, 10],
-            "steps_names": ["critical", "low", "charged", "full"],
-        }
-        t = -1
-        a = "0b00"
-        t_dec = "critical"
-        self.assertEqual(spos.encode_block(t, block), a)
-        self.assertEqual(spos.decode_block(a, block), t_dec)
-
-    def test_steps_lower_boundary(self):
-        block = {
-            "key": "steps",
-            "type": "steps",
-            "steps": [0, 5, 10],
-            "steps_names": ["critical", "low", "charged", "full"],
-        }
-        t = 5
-        a = "0b10"
-        t_dec = "charged"
-        self.assertEqual(spos.encode_block(t, block), a)
-        self.assertEqual(spos.decode_block(a, block), t_dec)
-
-    def test_steps_last_index(self):
-        block = {
-            "key": "steps",
-            "type": "steps",
-            "steps": [0, 5, 10],
-            "steps_names": ["critical", "low", "charged", "full"],
-        }
-        t = 11
-        a = "0b11"
-        t_dec = "full"
-        self.assertEqual(spos.encode_block(t, block), a)
-        self.assertEqual(spos.decode_block(a, block), t_dec)
-
-    def test_steps_auto_steps_names(self):
-        block = {
-            "key": "steps",
-            "type": "steps",
-            "steps": [0, 5, 10],
-        }
-        t = 1
-        a = "0b01"
-        t_dec = "0<=x<5"
-        self.assertEqual(spos.encode_block(t, block), a)
-        self.assertEqual(spos.decode_block(a, block), t_dec)
-
-    def test_steps_error_steps_names(self):
         with self.assertRaises(ValueError):
-            block = {
-                "key": "steps",
-                "type": "steps",
-                "steps": [0, 5, 10],
-                "steps_names": ["one", "two"],
-            }
-            t = 1
-            encoded = spos.encode_block(t, block)
-            spos.decode_block(encoded, block)
+            spos.bin_encode({"jon": False}, payload_spec)
 
-    def test_categories_block_0(self):
-        block = {
-            "key": "categories",
-            "type": "categories",
-            "categories": ["critical", "low", "charged", "full"],
+
+class TestMeta(TestCase):
+    def test_meta_wrong_type(self):
+        payload_spec = {
+            "name": "john",
+            "version": 3,
+            "meta": "error",
+            "body": [{"key": "jon", "type": "boolean"}],
         }
-        t = "critical"
-        a = "0b000"
-        t_dec = "critical"
-        self.assertEqual(spos.encode_block(t, block), a)
-        self.assertEqual(spos.decode_block(a, block), t_dec)
+        with self.assertRaises(ValueError):
+            spos.bin_encode({"sensor_name": "abc", "jon": False}, payload_spec)
 
-    def test_categories_block_1(self):
-        block = {
-            "key": "categories",
-            "type": "categories",
-            "categories": ["critical", "low", "charged", "full"],
+    def test_header(self):
+        payload_spec = {
+            "name": "john",
+            "version": 3,
+            "meta": {"header": [{"key": "sensor_name", "type": "string", "length": 6}]},
+            "body": [{"key": "jon", "type": "boolean"}],
         }
-        t = "low"
-        a = "0b001"
-        self.assertEqual(spos.encode_block(t, block), a)
-        self.assertEqual(spos.decode_block(a, block), t)
+        enc = spos.bin_encode({"sensor_name": "abc", "jon": False}, payload_spec)
+        dec, dec_meta = spos.bin_decode(enc, payload_spec)
+        self.assertDict(dec, {"jon": False})
+        self.assertDict(
+            dec_meta,
+            {"name": "john", "version": 3, "header": {"sensor_name": "+++abc"}},
+        )
 
-    def test_categories_block_2(self):
-        block = {
-            "key": "categories",
-            "type": "categories",
-            "categories": ["critical", "low", "charged", "full"],
-        }
-        t = "charged"
-        a = "0b010"
-        self.assertEqual(spos.encode_block(t, block), a)
-        self.assertEqual(spos.decode_block(a, block), t)
-
-    def test_categories_block_3(self):
-        block = {
-            "key": "categories",
-            "type": "categories",
-            "categories": ["critical", "low", "charged", "full"],
-        }
-        t = "full"
-        a = "0b011"
-        self.assertEqual(spos.encode_block(t, block), a)
-        self.assertEqual(spos.decode_block(a, block), t)
-
-    def test_categories_block_4(self):
-        block = {
-            "key": "categories",
-            "type": "categories",
-            "categories": ["critical", "low", "charged", "full"],
-        }
-        t = "unknown"
-        a = "0b100"
-        t_dec = "error"
-        self.assertEqual(spos.encode_block(t, block), a)
-        self.assertEqual(spos.decode_block(a, block), t_dec)
-
-    def test_crc_bin(self):
-        t = "0b1011110010110010"
-        a = "0b10100100"
-        b = "0b101111001011001010100100"
-        # block = {"key": "crc BIN test", "type": "crc8"}
-        self.assertEqual(spos.create_crc8(t), a)
-        self.assertEqual(spos.check_crc8(b), True)
-
-    def test_crc_hex(self):
-        t = "0xABCD35"
-        a = "0b00101011"
-        b = "0xABCD352B"
-        block = {"key": "crc HEX test", "type": "crc8"}
-        self.assertEqual(spos.create_crc8(t), a)
-        self.assertEqual(spos.check_crc8(b), True)
-
-
-class TestEncodeDecodeItems(SposTestCase):
-    def test_encode_items(self):
-        items = [
-            {"key": "active", "type": "boolean"},
-            {"key": "s3cr37", "type": "binary", "bits": 12},
-            {"key": "timestamp", "type": "integer", "bits": 32},
-            {"key": "wind speed", "type": "float", "bits": 7},
-            {"key": "pad", "type": "pad", "bits": 7},
-            {
-                "key": "sensor X",
-                "type": "object",
-                "items": [
-                    {"key": "value Y", "type": "integer", "bits": 6},
-                    {"key": "value Z", "type": "float", "bits": 6},
-                ],
+    def test_header_key_collision_error(self):
+        payload_spec = {
+            "name": "john",
+            "version": 3,
+            "meta": {
+                "header": [
+                    {"key": "key1", "type": "string", "length": 6},
+                    {"key": "key1", "type": "integer", "bits": 12},
+                ]
             },
-            {"key": "user input", "type": "string", "length": 7},
-            {
-                "key": "bird sightings",
-                "type": "steps",
-                "steps": [0, 5, 10, 15, 20],
-                "steps_names": [
-                    "Bogey",
-                    "Par",
-                    "Birdie",
-                    "Eagle",
-                    "Albatross",
-                    "Condor",
-                ],
+            "body": [{"key": "jon", "type": "boolean"}],
+        }
+
+        with self.assertRaises(KeyError):
+            spos.bin_encode({"key1": "abc", "jon": False}, payload_spec)
+
+    def test_send_version(self):
+        payload_spec = {
+            "name": "john",
+            "version": 3,
+            "meta": {"send_version": True, "version_bits": 4,},
+            "body": [{"key": "jon", "type": "boolean"}],
+        }
+        enc = spos.bin_encode({"sensor_name": "abc", "jon": False}, payload_spec)
+        dec, dec_meta = spos.bin_decode(enc, payload_spec)
+        self.assertDict(dec, {"jon": False})
+        self.assertDict(
+            dec_meta, {"name": "john", "version": 3},
+        )
+
+    def test_send_version_type_error(self):
+        payload_spec = {
+            "name": "john",
+            "version": 3,
+            "meta": {"send_version": "error", "version_bits": 4,},
+            "body": [{"key": "jon", "type": "boolean"}],
+        }
+        with self.assertRaises(TypeError):
+            spos.bin_encode({"sensor_name": "abc", "jon": False}, payload_spec)
+
+    def test_version_bits_type_error(self):
+        payload_spec = {
+            "name": "john",
+            "version": 3,
+            "meta": {"send_version": True, "version_bits": "error",},
+            "body": [{"key": "jon", "type": "boolean"}],
+        }
+        with self.assertRaises(TypeError):
+            spos.bin_encode({"sensor_name": "abc", "jon": False}, payload_spec)
+
+    def test_send_version_mismatch_error(self):
+        payload_spec = {
+            "name": "john",
+            "version": 3,
+            "meta": {"send_version": True, "version_bits": 4,},
+            "body": [{"key": "jon", "type": "boolean"}],
+        }
+        encoded = "0b00100000"
+        with self.assertRaises(spos.VersionError):
+            dec, dec_meta = spos.bin_decode(encoded, payload_spec)
+
+    def test_send_version_missing_version_bits(self):
+        payload_spec = {
+            "name": "john",
+            "version": 3,
+            "meta": {"send_version": True},
+            "body": [{"key": "jon", "type": "boolean"}],
+        }
+        with self.assertRaises(KeyError):
+            enc = spos.bin_encode({"jon": True}, payload_spec)
+
+    def test_send_version_version_overflow(self):
+        payload_spec = {
+            "name": "john",
+            "version": 17,
+            "meta": {"send_version": True, "version_bits": 4},
+            "body": [{"key": "jon", "type": "boolean"}],
+        }
+        with self.assertRaises(ValueError):
+            enc = spos.bin_encode({"jon": True}, payload_spec)
+
+    def test_static_header(self):
+        payload_spec = {
+            "name": "john",
+            "version": 1,
+            "meta": {
+                "send_version": True,
+                "version_bits": 4,
+                "header": [{"key": "my key", "value": "hello!"}],
             },
+            "body": [{"key": "jon", "type": "boolean"}],
+        }
+        t = {"jon": True}
+        enc = spos.bin_encode(t, payload_spec)
+        dec, dec_meta = spos.bin_decode(enc, payload_spec)
+        self.assertDict(dec, t)
+        self.assertDict(
+            dec_meta,
             {
-                "key": "battery",
-                "type": "categories",
-                "categories": ["critical", "low", "charged", "full"],
+                "name": payload_spec["name"],
+                "version": payload_spec["version"],
+                "header": {"my key": "hello!"},
             },
-        ]
-        values = [
-            True,
-            "0b1011111011101111",
-            1584042831,
-            0.7,
-            None,
-            {"value Y": 10, "value Z": 0.3},
-            # [2, 0, 6, 7, 1, 6, 8, 8, 15, 18, 19, 24, 25],
-            "burguer",
-            1337,
-            "charged",
-        ]
-        a = [
-            "0b1",
-            "0b101111101110",
-            "0b01011110011010101001001101001111",
-            "0b1011001",
-            "0b1111111",
-            "0b001010010011",
-            "0b011011101110101011100000101110011110101011",
-            "0b101",
-            "0b010",
-        ]
-        values_dec = [
-            True,
-            "0b101111101110",
-            1584042831,
-            0.7007874015748031,
-            None,
-            {"value Y": 10, "value Z": 0.30158730158730157},
-            "burguer",
-            "Condor",
-            "charged",
-        ]
-        encoded = spos.encode_items(values, items)
-        self.assertArray(encoded, a)
-        decoded = spos.decode_items(a, items)
-        self.assertArray(decoded, values_dec)
+        )
 
-    def test_encode_items_with_empty_inputs(self):
-        with self.assertRaises(ValueError):
-            spos.encode_items([], [])
+    def test_static_header_key_key_error(self):
+        payload_spec = {
+            "name": "john",
+            "version": 1,
+            "meta": {
+                "send_version": True,
+                "version_bits": 4,
+                "header": [{"value": "hello!"}],
+            },
+            "body": [{"key": "jon", "type": "boolean"}],
+        }
+        t = {"jon": True}
+        with self.assertRaises(KeyError):
+            enc = spos.bin_encode(t, payload_spec)
 
-    def test_encode_items_with_different_input_lengths(self):
-        with self.assertRaises(ValueError):
-            spos.encode_items([1], [])
-
-    def test_decode_items_with_empty_inputs(self):
-        with self.assertRaises(ValueError):
-            spos.decode_items([], [])
-
-    def test_decode_items_with_different_input_lengths(self):
-        with self.assertRaises(ValueError):
-            spos.decode_items([1], [])
+    def test_static_header_excess_keys_error(self):
+        payload_spec = {
+            "name": "john",
+            "version": 1,
+            "meta": {
+                "send_version": True,
+                "version_bits": 4,
+                "header": [{"key": "my key", "value": "hello!", "error key": 1}],
+            },
+            "body": [{"key": "jon", "type": "boolean"}],
+        }
+        t = {"jon": True}
+        with self.assertRaises(KeyError):
+            enc = spos.bin_encode(t, payload_spec)
 
 
-class TestEncodeDecode(SposTestCase):
+class TestEncodeDecode(TestCase):
     def test_get_subitems(self):
         payload_data = {"holy": {"grail": True, "deeper": {"mariana": 11}}}
         payload_spec = {
             "name": "test get subitems",
-            "items": [
+            "version": 1,
+            "body": [
                 {"key": "holy.grail", "type": "boolean"},
                 {"key": "holy.deeper.mariana", "type": "integer", "bits": 6,},
             ],
@@ -724,16 +273,56 @@ class TestEncodeDecode(SposTestCase):
         }
         enc = spos.bin_encode(payload_data, payload_spec)
         self.assertEqual(enc, encoded)
-        dec = spos.bin_decode(encoded, payload_spec)
+        dec, dec_meta = spos.bin_decode(encoded, payload_spec)
         self.assertDict(dec, decoded)
+        self.assertDict(
+            dec_meta,
+            {"name": payload_spec["name"], "version": payload_spec["version"],},
+        )
+
+    def test_encode_static_value(self):
+        payload_data = {"date": 0.221}
+        payload_spec = {
+            "name": "test encode",
+            "version": 1,
+            "meta": {"crc8": True,},
+            "body": [
+                {"key": "holy", "type": "string", "value": "abc", "length": 10,},
+                {"key": "type", "type": "integer", "value": 10, "bits": 6,},
+                {"key": "date", "type": "float", "bits": 6,},
+            ],
+        }
+        encoded = "0b11111011111011111011111011111011111011111001101001101101110000101000111000100100"
+        decoded = {
+            "holy": "+++++++abc",
+            "type": 10,
+            "date": 0.221,
+        }
+        meta = {
+            "name": payload_spec["name"],
+            "version": payload_spec["version"],
+            "crc8": True,
+        }
+        enc = spos.bin_encode(payload_data, payload_spec)
+        self.assertEqual(enc, encoded)
+        dec, dec_meta = spos.bin_decode(encoded, payload_spec)
+        self.assertDict(dec, decoded)
+        self.assertDict(
+            dec_meta,
+            {
+                "name": payload_spec["name"],
+                "version": payload_spec["version"],
+                "crc8": True,
+            },
+        )
 
     def test_bin_encode_decode_0(self):
         payload_data = {"holy": "grail", "buffer": [1, 2, 3, 4], "date": 0.98}
         payload_spec = {
             "name": "test encode",
             "version": 1,
-            "crc8": True,
-            "items": [
+            "meta": {"crc8": True,},
+            "body": [
                 {"key": "holy", "type": "string", "length": 10,},
                 {"key": "version", "type": "integer", "value": 1, "bits": 6,},
                 {
@@ -751,12 +340,24 @@ class TestEncodeDecode(SposTestCase):
             "version": 1,
             "buffer": [1, 2, 3, 4],
             "date": 0.98,
+        }
+        meta = {
+            "name": payload_spec["name"],
+            "version": payload_spec["version"],
             "crc8": True,
         }
         enc = spos.bin_encode(payload_data, payload_spec)
         self.assertEqual(enc, encoded)
-        dec = spos.bin_decode(encoded, payload_spec)
+        dec, dec_meta = spos.bin_decode(encoded, payload_spec)
         self.assertDict(dec, decoded)
+        self.assertDict(
+            dec_meta,
+            {
+                "name": payload_spec["name"],
+                "version": payload_spec["version"],
+                "crc8": True,
+            },
+        )
 
     def test_bin_encode_decode_1(self):
         payloads = [
@@ -818,10 +419,10 @@ class TestEncodeDecode(SposTestCase):
         ]
 
         payload_spec = {
-            "name": "test payload 2",
+            "name": "test payload 1",
             "version": 2,
-            "crc8": True,
-            "items": [
+            "meta": {"crc8": True,},
+            "body": [
                 {"key": "pad", "type": "pad", "bits": 5},
                 {"key": "msg_version", "type": "integer", "value": 2, "bits": 6,},
                 {"key": "sent_yesterday", "type": "boolean"},
@@ -855,14 +456,21 @@ class TestEncodeDecode(SposTestCase):
 
         for payload_data in payloads:
             enc = spos.bin_encode(payload_data, payload_spec)
-            dec = spos.bin_decode(enc, payload_spec)
+            dec, dec_meta = spos.bin_decode(enc, payload_spec)
             payload_data["sent_yesterday"] = bool(payload_data["sent_yesterday"])
-            payload_data["crc8"] = True
             payload_data["msg_version"] = 2
             if payload_data["voltage"] < 10:  # There's an underflow in the data
                 payload_data["voltage"] = 10
             del dec["rpi_temperature"], payload_data["rpi_temperature"]
             self.assertDict(dec, payload_data, 3)
+            self.assertDict(
+                dec_meta,
+                {
+                    "name": payload_spec["name"],
+                    "version": payload_spec["version"],
+                    "crc8": True,
+                },
+            )
 
     def test_bin_encode_decode_2(self):
         payload_data = {
@@ -874,7 +482,9 @@ class TestEncodeDecode(SposTestCase):
             "rain": 20,
         }
         payload_spec = {
-            "items": [
+            "name": "test payload 2",
+            "version": 2,
+            "body": [
                 {
                     "key": "confidences",
                     "type": "array",
@@ -908,24 +518,24 @@ class TestEncodeDecode(SposTestCase):
                     "upper": 50,
                 },
                 {"key": "rain", "type": "steps", "steps": [0, 10, 20, 30]},
-            ]
+            ],
         }
         enc = spos.bin_encode(payload_data, payload_spec)
-        dec = spos.bin_decode(enc, payload_spec)
+        dec, dec_meta = spos.bin_decode(enc, payload_spec)
         payload_data["msg_version"] = 1
         payload_data["rain"] = "20<=x<30"
         self.assertDict(dec, payload_data, 3)
-
-    def test_bin_encode_without_key_or_value(self):
-        with self.assertRaises(KeyError):
-            spos.bin_encode({}, {"items": [{"type": "boolean"}]})
+        self.assertDict(
+            dec_meta,
+            {"name": payload_spec["name"], "version": payload_spec["version"],},
+        )
 
     def test_hex_encode_decode_0(self):
         payload_data = {"holy": "grail", "buffer": [1, 2], "date": 0.98}
         payload_spec = {
             "name": "test encode",
             "version": 1,
-            "items": [
+            "body": [
                 {"key": "holy", "type": "string", "length": 11,},
                 {
                     "key": "buffer",
@@ -942,17 +552,21 @@ class TestEncodeDecode(SposTestCase):
             "buffer": [1, 2],
             "date": 0.98,
         }
-        enc = spos.hex_encode(payload_data, payload_spec)
-        dec = spos.hex_decode(enc, payload_spec)
+        enc = spos.encode(payload_data, payload_spec, "hex")
+        dec, dec_meta = spos.decode(enc, payload_spec)
         self.assertDict(dec, decoded)
+        self.assertDict(
+            dec_meta,
+            {"name": payload_spec["name"], "version": payload_spec["version"],},
+        )
 
     def test_encode_decode_0(self):
         payload_data = {"holy": "grail", "buffer": [1, 2, 3, 4], "date": 0.98}
         payload_spec = {
             "name": "test encode",
             "version": 1,
-            "crc8": True,
-            "items": [
+            "meta": {"crc8": True,},
+            "body": [
                 {"key": "holy", "type": "string", "length": 10,},
                 {"key": "version", "type": "integer", "value": 1, "bits": 6,},
                 {
@@ -970,13 +584,207 @@ class TestEncodeDecode(SposTestCase):
             "version": 1,
             "buffer": [1, 2, 3, 4],
             "date": 0.98,
-            "crc8": True,
+        }
+        enc = spos.encode(payload_data, payload_spec, "bytes")
+        self.assertEqual(enc, encoded)
+        dec, dec_meta = spos.decode(encoded, payload_spec)
+        self.assertDict(dec, decoded)
+        self.assertDict(
+            dec_meta,
+            {
+                "name": payload_spec["name"],
+                "version": payload_spec["version"],
+                "crc8": True,
+            },
+        )
+
+    def test_encode_decode_1(self):
+        payload_spec = {
+            "name": "test encode decode 1",
+            "version": 2,
+            "body": [
+                {"key": "active", "type": "boolean"},
+                {"key": "s3cr37", "type": "binary", "bits": 16},
+                {"key": "timestamp", "type": "integer", "bits": 32},
+                {"key": "wind speed", "type": "float", "bits": 7},
+                {"key": "pad", "type": "pad", "bits": 7},
+                {
+                    "key": "sensor X",
+                    "type": "object",
+                    "blocklist": [
+                        {"key": "value Y", "type": "integer", "bits": 6},
+                        {"key": "value Z", "type": "float", "bits": 6},
+                    ],
+                },
+                {"key": "user input", "type": "string", "length": 7},
+                {
+                    "key": "bird sightings",
+                    "type": "steps",
+                    "steps": [0, 5, 10, 15, 20],
+                    "steps_names": [
+                        "Bogey",
+                        "Par",
+                        "Birdie",
+                        "Eagle",
+                        "Albatross",
+                        "Condor",
+                    ],
+                },
+                {
+                    "key": "battery",
+                    "type": "categories",
+                    "categories": ["critical", "low", "charged", "full"],
+                },
+                {
+                    "key": "occurences",
+                    "type": "array",
+                    "bits": 6,
+                    "blocks": {
+                        "key": "species",
+                        "type": "object",
+                        "blocklist": [
+                            {
+                                "key": "name",
+                                "type": "categories",
+                                "categories": ["kitten", "doggo"],
+                            },
+                            {"key": "count", "type": "integer", "bits": 6},
+                        ],
+                    },
+                },
+            ],
+        }
+        payload_data = {
+            "active": True,
+            "s3cr37": "0b1011111011101111",
+            "timestamp": 1584042831,
+            "wind speed": 0.7,
+            "sensor X": {"value Y": 10, "value Z": 0.3},
+            "user input": "burguer",
+            "bird sightings": 1337,
+            "battery": "charged",
+            "occurences": [
+                {"name": "kitten", "count": 4},
+                {"name": "doggo", "count": 10},
+            ],
         }
         enc = spos.encode(payload_data, payload_spec)
-        self.assertEqual(enc, encoded)
-        dec = spos.decode(encoded, payload_spec)
-        self.assertDict(dec, decoded)
+        dec, dec_meta = spos.decode(enc, payload_spec)
+        payload_data["bird sightings"] = "Condor"
+        self.assertDict(dec, payload_data)
+        self.assertDict(
+            dec_meta,
+            {"name": payload_spec["name"], "version": payload_spec["version"],},
+        )
+
+    def test_decode_unknown_message_error(self):
+        payload_spec = {
+            "name": "test decode",
+            "version": 2,
+            "body": [{"key": "temperature", "type": "float", "bits": 10}],
+        }
+        t = {"temperature": 0.3}
+        with self.assertRaises(ValueError):
+            spos.decode(["error"], payload_spec)
+
+    def test_decode_string_message_error(self):
+        payload_spec = {
+            "name": "test decode",
+            "version": 2,
+            "body": [{"key": "temperature", "type": "float", "bits": 10}],
+        }
+        t = {"temperature": 0.3}
+        with self.assertRaises(ValueError):
+            spos.decode("error string", payload_spec)
 
 
-if __name__ == "__main__":
-    unittest.main()
+class TestDecodeFromSpecs(TestCase):
+    def setUp(self):
+        self.payload_spec_0 = {
+            "name": "my spec",
+            "version": 0,
+            "meta": {"send_version": True, "version_bits": 6,},
+            "body": [
+                {"key": "sensor x", "type": "boolean"},
+                {"key": "sensor y", "type": "integer", "bits": 10},
+            ],
+        }
+        self.payload_spec_1 = {
+            "name": "my spec",
+            "version": 1,
+            "meta": {"send_version": True, "version_bits": 6,},
+            "body": [
+                {"key": "sensor a", "type": "float", "bits": 6},
+                {"key": "sensor b", "type": "integer", "bits": 10},
+            ],
+        }
+        self.payload_spec_2 = {
+            "name": "my spec",
+            "version": 2,
+            "meta": {"send_version": True, "version_bits": 6,},
+            "body": [
+                {"key": "temperature", "type": "float", "bits": 10},
+                {"key": "sunlight", "type": "float", "bits": 8},
+            ],
+        }
+        self.payload_spec_3 = {
+            "name": "my spec",
+            "version": 3,
+            "meta": {"send_version": True, "version_bits": 6,},
+            "body": [
+                {"key": "night", "type": "boolean"},
+                {"key": "fog", "type": "boolean"},
+            ],
+        }
+        self.specs = [
+            self.payload_spec_0,
+            self.payload_spec_1,
+            self.payload_spec_2,
+            self.payload_spec_3,
+        ]
+
+    def test_decode_from_specs(self):
+        t = {"sensor x": False, "sensor y": 19}
+        enc = spos.bin_encode(t, self.payload_spec_0)
+        dec, dec_meta = spos.decode_from_specs(enc, self.specs)
+        self.assertDict(dec, t)
+        self.assertDict(
+            dec_meta,
+            {
+                "name": self.payload_spec_0["name"],
+                "version": self.payload_spec_0["version"],
+            },
+        )
+
+        t = {"sensor a": 0.4, "sensor b": 500}
+        enc = spos.bin_encode(t, self.payload_spec_1)
+        dec, dec_meta = spos.decode_from_specs(enc, self.specs)
+        self.assertDict(dec, t)
+        self.assertDict(
+            dec_meta,
+            {
+                "name": self.payload_spec_1["name"],
+                "version": self.payload_spec_1["version"],
+            },
+        )
+
+    def test_decode_from_specs_message_version_mismatch(self):
+        t = {"sensor x": False, "sensor y": 19}
+        enc = spos.bin_encode(t, self.payload_spec_0)
+        enc = f"{enc[:2]}1{enc[3:]}"
+        with self.assertRaises(spos.PayloadSpecError):
+            spos.decode_from_specs(enc, self.specs)
+
+    def test_decode_from_specs_name_mismatch(self):
+        self.payload_spec_0["name"] = "not my spec"
+        t = {"sensor x": False, "sensor y": 19}
+        enc = spos.bin_encode(t, self.payload_spec_0)
+        with self.assertRaises(spos.SpecsVersionError):
+            spos.decode_from_specs(enc, self.specs)
+
+    def test_decode_from_specs_duplicate_version(self):
+        self.payload_spec_3["version"] = 1
+        t = {"sensor x": False, "sensor y": 19}
+        enc = spos.bin_encode(t, self.payload_spec_0)
+        with self.assertRaises(spos.SpecsVersionError):
+            spos.decode_from_specs(enc, self.specs)

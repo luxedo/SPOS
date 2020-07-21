@@ -1,7 +1,7 @@
 {
   "name": "test payload",
   "version": 2,
-  "items": [
+  "body": [
     {
       "key": "important data",
       "type": "integer",

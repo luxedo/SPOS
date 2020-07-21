@@ -13,236 +13,29 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
-import copy
-import math
-from string import ascii_uppercase, ascii_lowercase, digits
+import re
 
-import crc8
-
-from . import encoders, decoders, validators
-from . import random as srandom
+from .blocks import Block
+from .exceptions import VersionError, PayloadSpecError, SpecsVersionError
+from .checks import create_crc8, check_crc8
+from . import utils
 
 
-TYPES_KEYS = {
-    "boolean": {},
-    "binary": {"required": {"bits": int}},
-    "integer": {
-        "required": {"bits": int},
-        "optional": {"offset": {"type": int, "default": 0}},
-    },
-    "float": {
-        "required": {"bits": int},
-        "optional": {
-            "lower": {"type": (int, float), "default": 0},
-            "upper": {"type": (int, float), "default": 1},
-            "approximation": {
-                "type": (str),
-                "default": "round",
-                "choices": ["round", "floor", "ceil"],
-            },
-        },
-    },
-    "pad": {"required": {"bits": int},},
-    "array": {"required": {"bits": int, "blocks": "blocks"},},
-    "object": {"required": {"items": "items"}},
-    "string": {
-        "required": {"length": int},
-        "optional": {"custom_alphabeth": {"type": (dict), "default": {}}},
-    },
-    "steps": {
-        "required": {"steps": list},
-        "optional": {"steps_names": {"type": list, "default": []}},
-    },
-    "categories": {"required": {"categories": list},},
-}
-
-TYPES = {
-    "boolean": {
-        "input": (bool, int),
-        "encoder": encoders.encode_boolean,
-        "decoder": decoders.decode_boolean,
-    },
-    "binary": {
-        "input": str,
-        "validator": validators.validate_binary,
-        "encoder": encoders.encode_binary,
-        "decoder": decoders.decode_binary,
-    },
-    "integer": {
-        "input": int,
-        "encoder": encoders.encode_integer,
-        "decoder": decoders.decode_integer,
-    },
-    "float": {
-        "input": (int, float),
-        "encoder": encoders.encode_float,
-        "decoder": decoders.decode_float,
-    },
-    "pad": {"encoder": encoders.encode_pad, "decoder": decoders.decode_pad},
-    # Inject dependencies with lambda to keep the functions with the same interface
-    "array": {
-        "input": list,
-        "encoder": lambda value, block: encoders.encode_array(
-            value, block, encode_items
-        ),
-        "decoder": lambda message, block: decoders.decode_array(
-            message, block, decode_message
-        ),
-    },
-    "object": {
-        "input": dict,
-        "encoder": lambda value, block: encoders.encode_object(
-            value, block, encode_items
-        ),
-        "decoder": lambda message, block: decoders.decode_object(
-            message, block, decode_message
-        ),
-    },
-    "string": {
-        "input": str,
-        "encoder": lambda value, block: encoders.encode_string(
-            value, block, BASE64_REV_ALPHABETH
-        ),
-        "decoder": lambda value, block: decoders.decode_string(
-            value, block, BASE64_ALPHABETH
-        ),
-    },
-    "steps": {
-        "input": (int, float),
-        "encoder": encoders.encode_steps,
-        "decoder": decoders.decode_steps,
-    },
-    "categories": {
-        "input": str,
-        "encoder": encoders.encode_categories,
-        "decoder": decoders.decode_categories,
-    },
-}
-
-BASE64_ALPHABETH = dict(enumerate(ascii_uppercase + ascii_lowercase + digits + "+/"))
-BASE64_REV_ALPHABETH = {val: key for key, val in BASE64_ALPHABETH.items()}
-
-
-def validate_block(block, parent="root"):
-    """
-    Validates block specification.
-
-    Args:
-        block (dict): Block specification.
-
-    Raises:
-        KeyError, ValueError, TypeError: For non conformant blocks.
-    """
-    # Check key
-    if "key" not in block:
-        raise KeyError("Block '{0}: {1}' must have 'key'.".format(parent, block))
-    key = block["key"]
-    if not isinstance(key, str):
-        raise TypeError("Block '{0}: {1}' 'key' must be a string.".format(parent, key))
-
-    # Check type
-    if "type" not in block:
-        raise KeyError("Block '{0}: {1}' must have 'type'.".format(parent, key))
-    b_type = block["type"]
-    if block["type"] not in TYPES:
-        raise ValueError(
-            "Block '{0}: {1}' has an unknown 'type' {2}.".format(parent, key, b_type)
-        )
-    type_keys = TYPES_KEYS[block["type"]]
-
-    # Check required keys
-    for s_key, tp in type_keys.get("required", {}).items():
-        if tp == "blocks":
-            validate_block(block["blocks"], "{0}: {1}".format(parent, block["key"]))
-        elif tp == "items":
-            for b in block["items"]:
-                validate_block(b, "{0}: {1}".format(parent, block["key"]))
-        elif not isinstance(block[s_key], tp):
-            raise TypeError(
-                "Block '{0}: {1}' setting '{2}' has wrong type '{3}' instead of '{4}'.".format(
-                    parent, key, s_key, type(block[s_key]), tp
-                )
-            )
-
-    # Check optional keys
-    for s_key, opts in type_keys.get("optional", {}).items():
-        if s_key in block and not isinstance(block[s_key], opts["type"]):
-            raise TypeError(
-                "Block '{0}: {1}' optional setting '{2}' has wrong type '{3}' instead of '{4}'.".format(
-                    parent, key, s_key, type(block[s_key]), opts["type"]
-                )
-            )
-    if block["type"] == "steps":
-        if (
-            "steps_names" in block
-            and len(block["steps_names"]) != len(block["steps"]) + 1
-        ):
-            raise ValueError(
-                "'steps_names' for block {0} has to have length 1 + len(steps).".format(
-                    block["key"]
-                )
-            )
-
-    # Check for unexpected keys
-    allowed_keys = (
-        list(type_keys.get("optional", {}).keys())
-        + list(type_keys.get("required", {}).keys())
-        + ["key", "type", "value", "bits"]
-    )
-    for key in block:
-        if key not in allowed_keys:
-            raise KeyError(
-                "Block '{0}' has an unexpected key '{1}'.".format(block["key"], key)
-            )
-
-
-def fill_defaults(block):
-    """
-    Fills the default values for optional valeus in `block`.
-
-    Args:
-        block (dict): The block to fill.
-
-    Returns:
-        block (dict): A copy of the block with the optional values.
-    """
-    block = copy.deepcopy(block)
-    type_keys = TYPES_KEYS[block["type"]]
-    for s_key, opts in type_keys.get("optional", {}).items():
-        if not s_key in block:
-            block[s_key] = opts["default"]
-            if s_key == "steps_names":
-                steps = block["steps"]
-                block[s_key] = (
-                    ["x<{0}".format(steps[0])]
-                    + ["{0}<=x<{1}".format(l, u) for l, u in zip(steps, steps[1:])]
-                    + ["x>={0}".format(steps[0])]
-                )
-    return block
-
-
-def encode_block(value, block):
+def encode_block(value, block_spec):
     """
     Encodes value according to block specifications.
 
     Args:
         value: The value to be encoded
-        block (dict): Block specifications
+        block_spec (dict): Block specification
 
     Returns:
         message (str): Binary string of the message.
     """
-    validate_block(block)
-    block = fill_defaults(block)
-    type_conf = TYPES[block["type"]]
-    if "input" in type_conf:
-        validators.validate_input(value, type_conf["input"], block)
-    if "validator" in type_conf:
-        type_conf["validator"](value, block)
-    return type_conf["encoder"](value, block)
+    return Block(block_spec).bin_encode(value)
 
 
-def decode_block(message, block):
+def decode_block(message, block_spec):
     """
     Encodes value according to block specifications.
 
@@ -252,115 +45,42 @@ def decode_block(message, block):
 
     Returns:
         value: Value of the message.
-        bits (int): Number of consumed bits in the operation.
     """
-    validate_block(block)
-    block = fill_defaults(block)
-    type_conf = TYPES[block["type"]]
-    return type_conf["decoder"](message, block)
+    return Block(block_spec).bin_decode(message)
 
 
-def encode_items(values, items):
+def _build_meta_block(payload_spec):
     """
-    Encodes a list of blocks.
+    Performs validations in the meta specification and returns o
 
     Args:
-        values (list): The list of values to encode.
-        items (list): A list of blocks.
+        payload_spec (dict): Payload specifications.
 
     Returns:
-        message (str): Binary string of the message.
-
-    Raises:
-        ValueError: If the length of value and items differ or if any
-            of the arrays is empty
+        version_block (Block): A block to encode the version if
+            'meta.send_version' is set otherwise returns None.
+        header_block (BlocK): A block to encode the header values.
+        header_static (dict): Static values declared in the header.
     """
-    messages = []
-    if len(values) != len(items):
-        raise ValueError("Arrays 'messages' and 'items' differ in length.")
-    if len(values) == 0:
-        raise ValueError("Empty inputs for 'messages' and 'items'.")
-    for value, block in zip(values, items):
-        messages.append(encode_block(value, block))
-    return messages
+    meta_spec = payload_spec.get("meta", {})
+    version_block = (
+        None
+        if not meta_spec.get("send_version")
+        else Block(
+            {"key": "version", "type": "integer", "bits": meta_spec["version_bits"],}
+        )
+    )
 
+    header_bl = meta_spec.get("header", [])
+    header_encode = [block for block in header_bl if "value" not in block]
+    header_block = Block(
+        {"key": "header", "type": "object", "blocklist": header_encode}
+    )
 
-def decode_items(messages, items):
-    """
-    Decodes list of blocks.
-
-    Args:
-        messages (list): The list of messages to decode
-        items (list): A list of blocks.
-
-    Returns:
-        values (list): The list of values for the blocks.
-    """
-    values = []
-    acc_message = "0b"
-    if len(messages) != len(items):
-        raise ValueError("Arrays 'messages' and 'items' differ in length.")
-    if len(messages) == 0:
-        raise ValueError("Empty inputs for 'messages' and 'items'.")
-    for message, block in zip(messages, items):
-        acc_message += message[2:]
-        values.append(decode_block(message, block))
-    return values
-
-
-def decode_message(message, items):
-    """
-    Decodes a concatenated message of multiple items.
-
-    Args:
-        message (str): Message to decode
-        items (list): A list of blocks.
-
-    Returns:
-        values (list): The list of values for the blocks.
-    """
-    messages = []
-    message = message[2:]
-    for block in items:
-        block = fill_defaults(block)
-        bits = accumulate_bits(message, block)
-        messages.append("0b" + message[:bits])
-        message = message[bits:]
-    return decode_items(messages, items)
-
-
-def accumulate_bits(message, block):
-    """
-    Calculates the bits of the block in the message.
-
-    Args:
-        message (str): Binary string of the message.
-        block (dict): Block specifications
-
-    Returns:
-        bits (int): Number of bits in the block.
-    """
-    acc = 0
-    if "bits" in block:
-        acc += block["bits"]
-    if block["type"] == "boolean":
-        acc = 1
-    elif block["type"] == "string":
-        acc += block["length"] * 6
-    elif block["type"] == "array":
-        bits = block["bits"]
-        length = decoders.decode_integer(message[:bits], {"bits": bits, "offset": 0})
-        acc += length * accumulate_bits(message[bits:], block["blocks"])
-    elif block["type"] == "object":
-        for b in block["items"]:
-            bits = accumulate_bits(message, b)
-            message = message[bits:]
-            acc += bits
-    elif block["type"] == "steps":
-        acc += math.ceil(math.log(len(block["steps_names"]), 2))
-    elif block["type"] == "categories":
-        acc += math.ceil(math.log(len(block["categories"]) + 1, 2))
-    return acc
+    header_static = {
+        block["key"]: block["value"] for block in header_bl if "value" in block
+    }
+    return version_block, header_block, header_static
 
 
 def bin_encode(payload_data, payload_spec):
@@ -369,35 +89,31 @@ def bin_encode(payload_data, payload_spec):
     Returns the message as a binary string.
 
     Args:
-        payload_data (dict): The list of values to encode.
-        payload_spec (dict): Payload specifications.
+        payload_data (dict): Payload data.
+        payload_spec (dict): Payload specification.
 
     Returns:
         message (str): Binary string of the message.
     """
-    values = []
-    for block in payload_spec["items"]:
-        if block["type"] == "pad":
-            values.append(None)  # Dummy value
-            continue
-        if "key" not in block and "value" not in block:
-            raise KeyError(
-                "Block '{0}' must have either key or value, not neither.".format(block)
-            )
-        if "value" in block:
-            values.append(block["value"])
-        else:
-            values.append(get_subitem(block["key"], payload_data))
+    utils.validate_payload_spec(payload_spec)
+    message = "0b"
 
-    messages = encode_items(values, payload_spec["items"])
-    partial_msg = "0b"
-    for idx, block in enumerate(payload_spec["items"]):
-        partial_msg += messages[idx][2:]
+    version_block, header_block, header_static = _build_meta_block(payload_spec)
 
-    partial_msg += "0" * ((8 - (len(partial_msg[2:]) % 8)) % 8)
-    if payload_spec.get("crc8"):
-        partial_msg = partial_msg + create_crc8(partial_msg)[2:]
-    return partial_msg
+    if version_block:
+        message += version_block.bin_encode(payload_spec["version"])[2:]
+    message += header_block.bin_encode(payload_data)[2:]
+
+    body = payload_spec.get("body", [])
+    body_block = Block({"key": "body", "type": "object", "blocklist": body})
+    message += body_block.bin_encode(payload_data)[2:]
+
+    message += "0" * ((8 - (len(message[2:]) % 8)) % 8)  # pad message to fill a byte
+
+    if payload_spec.get("meta", {}).get("crc8"):
+        message += create_crc8(message)[2:]
+
+    return message
 
 
 def bin_decode(message, payload_spec):
@@ -406,140 +122,63 @@ def bin_decode(message, payload_spec):
 
     Args:
         message (str): Binary string of the message.
-        payload_spec (dict): Payload specifications.
+        payload_spec (dict): Payload specification.
 
     Returns:
         payload_data (dict): Payload data.
+        meta (dict): Payload metadata.
     """
-    items = payload_spec["items"]
-    values = decode_message(message, items)
-    keys = [block["key"] for block in items]
-    payload_data = dict(zip(keys, values))
-    if payload_spec.get("crc8"):
-        payload_data["crc8"] = check_crc8(message)
-    for key, block in zip(keys, items):
-        if block["type"] == "pad" and key in payload_data:
-            del payload_data[key]
-    return payload_data
+    utils.validate_payload_spec(payload_spec)
+    meta = {"name": payload_spec["name"], "version": payload_spec["version"]}
+
+    version_block, header_block, header_static = _build_meta_block(payload_spec)
+
+    if version_block:
+        msg_version, message = version_block.consume(message)
+        if msg_version != meta["version"]:
+            raise VersionError(
+                f"Versions don't match. Expected {meta['version']}, got {msg_version}."
+            )
+
+    header, body_msg = header_block.consume(message)
+    header.update(header_static)
+
+    if header:
+        meta["header"] = utils.remove_null_values(header)
+
+    if payload_spec.get("meta", {}).get("crc8"):
+        meta["crc8"] = check_crc8(message)
+        body_msg = body_msg[:-8]
+
+    body = payload_spec.get("body", {})
+    body_block = Block({"key": "body", "type": "object", "blocklist": body})
+    body, msg_tail = body_block.consume(body_msg)
+    body = utils.remove_null_values(body)
+    return body, meta
 
 
-def get_subitem(key, value):
-    """
-    Gets a subitem from "value" according to "key" layers. Eg:
-
-    get_subitem("key1.key2", {"key1": {"key2": True}}) Returns the
-    value of "key2" inside "key1".
-
-    Args:
-        key   (str): Key with items splitted with "." (eg "results.count.armigera")
-        value (arr): Array (or Dictionary) to be filtered
-
-    Returns:
-        value: Nested value according to key.
-
-    Raises:
-        KeyError: When value is not accessible by key.
-    """
-    mask = key.split(".")
-    for sub in mask:
-        try:
-            value = value[sub]
-        except:
-            raise KeyError("Key: {0} is not present in value {1}.".format(sub, value))
-    return value
-
-
-def create_crc8(message):
-    """
-    Creates an 8-bit CRC.
-
-    Args:
-        message (str): Binary or hex string of the message.
-
-    Returns:
-        crc8 (str): Binary string of the CRC8 hash for the message.
-    """
-    if message.startswith("0b"):
-        _bytes = len(message[2:]) // 4
-        message = "0x" + "{:x}".format(int(message, 2)).rjust(_bytes, "0")
-    pad = "0" * (len(message[2:]) % 2)
-    message = bytes.fromhex(pad + message[2:])
-    hasher = crc8.crc8()
-    hasher.update(message)
-    crc = bin(int(hasher.hexdigest(), 16))
-    crc = "0b" + "{0:0>8}".format(crc[2:])
-    return crc
-
-
-def check_crc8(message):
-    """
-    Checks if the message is valid. The last byte of the message must
-    be the CRC8 hash of the previous data.
-
-    Args:
-        message (str): Binary or hex string of the message.
-
-    Returns:
-        valid (bool): True if the message is valid.
-    """
-    if message.startswith("0x"):
-        bits = len(message[2:]) * 4
-        message = "0b" + "{0}".format(bin(int(message, 16))[2:]).rjust(bits, "0")
-    crc_dec = "0b" + message[-8:]
-    message = message[:-8]
-    return create_crc8(message) == crc_dec
-
-
-def hex_encode(payload_data, payload_spec):
-    """
-    Encodes a message from payload_data according to payload_spec.
-    Returns the message as an hex string.
-
-    Args:
-        payload_data (dict): The list of values to encode.
-        payload_spec (dict): Payload specifications.
-
-    Returns:
-        message (str): Binary string of the message.
-    """
-    message = bin_encode(payload_data, payload_spec)
-    message = message[2:]
-    output = "0x"
-    for i in range(len(message) // 8):
-        output += "{0:02X}".format(int(message[8 * i : 8 * (i + 1)], 2))
-    return output
-
-
-def hex_decode(message, payload_spec):
-    """
-    Decodes an hex message according to payload_spec.
-
-    Args:
-        message (str): Hex string of the message.
-        payload_spec (dict): Payload specifications.
-
-    Returns:
-        payload_data (dict): Payload data.
-    """
-    bits = len(message[2:]) * 4
-    message = bin(int(message, 16))[2:]
-    message = "0b" + message.zfill(bits)
-    return bin_decode(message, payload_spec)
-
-
-def encode(payload_data, payload_spec):
+def encode(payload_data, payload_spec, output="bin"):
     """
     Encodes a message from payload_data according to payload_spec.
     Returns the message as bytes.
 
     Args:
-        payload_data (dict): The list of values to encode.
-        payload_spec (dict): Payload specifications.
+        payload_data (dict): Payload data.
+        payload_spec (dict): Payload specification.
+        output (str): Output format (bin, hex or bytes). default: "bin".
 
     Returns:
         message (bytes): Message.
     """
-    return bytes(bytearray.fromhex(hex_encode(payload_data, payload_spec)[2:]))
+    message = bin_encode(payload_data, payload_spec)
+    if output in ("hex", "bytes"):
+        message = message[2:]
+        message = "0x" + "".join(
+            "{0:02X}".format(int(message[8 * i : 8 * (i + 1)], 2))
+            for i in range(len(message) // 8)
+        )
+        message = message if output == "hex" else bytes(bytearray.fromhex(message[2:]))
+    return message
 
 
 def decode(message, payload_spec):
@@ -547,31 +186,57 @@ def decode(message, payload_spec):
     Decodes an hex message according to payload_spec.
 
     Args:
-        message (bytes): Message.
-        payload_spec (dict): Payload specifications.
+        message (bin | hex | bytes): Message.
+        payload_spec (dict): Payload specification.
 
     Returns:
         payload_data (dict): Payload data.
+        meta (dict): Payload metadata.
     """
-    message = "0x" + message.hex()
-    return hex_decode(message, payload_spec)
+    if isinstance(message, str):
+        if not (
+            re.match("^0b[01]+$", message) or re.match("^0x[0-9a-fA-F]+$", message)
+        ):
+            raise ValueError(
+                "String message must be either a binary string (0b) or an hex string (0x)"
+            )
+    elif not isinstance(message, bytes):
+        raise ValueError(f"Message must be either str or bytes, got {type(message)}")
+
+    message = f"0x{message.hex()}" if isinstance(message, bytes) else message
+    if message.startswith("0x"):
+        bits = len(message[2:]) * 4
+        message = bin(int(message, 16))[2:]
+        message = "0b" + message.zfill(bits)
+    return bin_decode(message, payload_spec)
 
 
-def random_payloads(
-    prefix=".*",
-    protocol=".*",
-    version="v[0-9]+",
-    directory="specs",
-    amount=1,
-    out="payloads",
-    export=False,
-):
-    specs = srandom.get_specs(directory, prefix, protocol, version)
-    payloads = {}
-    for spec in specs:
-        payloads[spec.filename] = []
-        for number in range(amount):
-            payload = srandom.Payload(spec, number, out)
-            payloads[spec.filename].append(payload)
-            if export:
-                payload.export()
+def decode_from_specs(message, specs):
+    """
+    Decodes message from an avaliable pool of payload specificaions by
+    matching message version with specification version.
+
+    All the payload specifications must have `meta.send_version` set
+    and also the same value for `meta.version_bits`.
+
+    Raises:
+        PayloadSpecError: If message version is not in 'specs'
+        SpecsVersionError: If names doesn't match or has duplicate versions
+        Other Exceptions: For incorrect payload specification syntax.
+            see spos.utils.validate_payload_spec and
+            block.Block.validate_block_spec_keys
+
+    Args:
+        message (bin | hex | bytes): Message.
+
+    Returns:
+        payload_data (dict): Payload data.
+        meta (dict): Payload metadata.
+    """
+    utils.validate_specs(specs, match_versions=True)
+    for payload_spec in specs:
+        try:
+            return bin_decode(message, payload_spec)
+        except VersionError:
+            pass
+    raise PayloadSpecError("Message does not match any version in 'specs'.")

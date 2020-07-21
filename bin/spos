@@ -21,14 +21,15 @@ import sys
 from spos import encode, decode
 
 
-def _encode(infile, outfile, _payload_spec):
+def _encode(infile, outfile, _payload_spec, format):
     payload_data = json.load(infile)
     infile.close()
 
     payload_spec = json.load(_payload_spec)
     _payload_spec.close()
 
-    message = encode(payload_data, payload_spec)
+    message = encode(payload_data, payload_spec, format)
+    message = message if format == "bytes" else bytes(message, encoding="ascii")
     if outfile.name == "<stdout>":
         sys.stdout.buffer.write(message)
     else:
@@ -36,7 +37,7 @@ def _encode(infile, outfile, _payload_spec):
     outfile.close()
 
 
-def _decode(infile, outfile, _payload_spec):
+def _decode(infile, outfile, _payload_spec, format):
     if infile.name == "<stdin>":
         message = sys.stdin.buffer.read()
     else:
@@ -46,8 +47,11 @@ def _decode(infile, outfile, _payload_spec):
     payload_spec = json.load(_payload_spec)
     _payload_spec.close()
 
-    payload_data = decode(message, payload_spec)
-    outfile.write(json.dumps(payload_data, indent=2))
+    message = f"0x{message.decode('ascii')}" if format == "hex" else message
+    message = f"0b{message.decode('ascii')}" if format == "bin" else message
+
+    payload_data, meta = decode(message, payload_spec)
+    outfile.write(json.dumps({"meta": meta, "body": payload_data}, indent=2))
     outfile.close()
 
 
@@ -66,6 +70,13 @@ if __name__ == "__main__":
         help="json file payload specifications.",
     )
     parser.add_argument(
+        "-f",
+        "--format",
+        choices=["bin", "hex", "bytes"],
+        default="bytes",
+        help="Output format",
+    )
+    parser.add_argument(
         "infile",
         nargs="?",
         type=argparse.FileType("rb"),
@@ -81,6 +92,6 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
     if args.decode:
-        _decode(args.infile, args.outfile, args.payload_spec)
+        _decode(args.infile, args.outfile, args.payload_spec, args.format)
     else:
-        _encode(args.infile, args.outfile, args.payload_spec)
+        _encode(args.infile, args.outfile, args.payload_spec, args.format)

@@ -23,8 +23,8 @@ payload_spec = {
   "version": 1,
   "body": [{
     "type": "integer",
-    "key": "payload_version",
-    "value": 1,  # 01
+    "key": "constant_data",
+    "value": 2,  # 10
     "bits": 2
   }, {
     "type": "integer",
@@ -41,7 +41,7 @@ payload_data = {
 }
 
 message = spos.bin_encode(payload_data, payload_spec)
-"0b01001101010011"
+"0b10001101010011"
 ```
 
 Decoding data
@@ -53,8 +53,8 @@ payload_spec = {
   "version": 1,
   "body": [{
     "type": "integer",
-    "key": "payload_version",
-    "value": 1,  # 01
+    "key": "constant_data",
+    "value": 2,  # 10
     "bits": 2
   }, {
     "type": "integer",
@@ -65,10 +65,18 @@ payload_spec = {
     "key": "float_data",
     "bits": 6
 }]
-message = "0b01001101010011"
-payload_data = spos.bin_decode(message, payload_spec)
+message = "0b10001101010011"
+payload_data, meta = spos.bin_decode(message, payload_spec)
+
+meta
 {
-  "payload_version": 1,
+  "name": "example payload",
+  "version": 1,
+}
+
+payload_data
+{
+  "constant_data": 2,
   "int_data": 13,
   "float_data": 0.59375
 }
@@ -84,8 +92,7 @@ pip install spos
 
 The payload specification consists of four main keys: `name`, `version`,
 `meta`, an optional key witch describes properties of the payload and
-`body` which describes the data being sent. Additional keys can be
-provided and will be inserted in the decoded message.
+`body` which describes the data being sent.
 
 ```python
 payload_spec = {
@@ -117,7 +124,7 @@ The name should be a string that briefly describes the payload.
 
 ### Version
 
-An integer representing message version.
+A positive integer representing message version.
 
 ### Meta
 
@@ -146,10 +153,29 @@ checks if the CRC8 is valid.
 #### `header`
 
 The `header` should be an array of [blocks](#Block) which we call
-`blocklist`. It has no much difference from `body` other than
-isolate the payload data from any metadata.
+`blocklist`. In the `header` any static [value](#value) is not encoded
+in the message and when decoding the value is gathered from payload
+specification. This static block does not needs to specify any extra
+keys other than `key` and `value`. Eg:
 
-#### `body`
+```
+payload_spec = {
+  "name": "payload meta",
+  "version": 1,
+  "meta": {
+    "header": [{
+        "key": "static key",
+        "value": 1024
+      }, {
+        "key": "normal key",
+        "type": "integer,
+        "bits": 6
+    }]
+  }
+}
+```
+
+### Body
 
 The `body` should be an array of [blocks](#Block) describing each
 section of the serialized message.
@@ -197,7 +223,9 @@ spos.bin_encode(payload_data, payload_spec)
 
 #### `value`
 
-A static value for the `block` (optional).
+A static value for the `block` (optional). when this value is set, SPOS
+will not encode the data in the message and the decoder will gather the
+value from `payload_spec`.
 
 #### `type`
 
@@ -390,90 +418,33 @@ Additional keys:
 ## Encode and Decode Functions
 
 ```python
-def encode(payload_data, payload_spec):
+def encode(payload_data, payload_spec, output="bin"):
     """
     Encodes a message from payload_data according to payload_spec.
-    Returns the message as a binary string.
+    Returns the message as bytes.
 
     Args:
-        payload_data (dict): The list of values to encode.
-        payload_spec (dict): Payload specifications.
+        payload_data (dict): Payload data.
+        payload_spec (dict): Payload specification.
+        output (str): Output format (bin, hex or bytes). default: "bin".
 
     Returns:
-        message (str): Binary string of the message.
+        message (bytes): Message.
     """
 ```
 
 ```python
 def decode(message, payload_spec):
     """
-    Decodes a binary message according to payload_spec.
-
-    Args:
-        message (str): Binary string of the message.
-        payload_spec (dict): Payload specifications.
-
-    Returns:
-        payload_data (dict): Payload data.
-    """
-```
-
-```python
-def hex_encode(payload_data, payload_spec):
-"""
-Encodes a message from payload_data according to payload_spec.
-Returns the message as an hex string.
-
-    Args:
-        payload_data (dict): The list of values to encode.
-        payload_spec (dict): Payload specifications.
-
-    Returns:
-        message (str): Binary string of the message.
-    """
-
-```
-
-```python
-def hex_decode(message, payload_spec):
-    """
     Decodes an hex message according to payload_spec.
 
     Args:
-        message (str): Hex string of the message.
-        payload_spec (dict): Payload specifications.
+        message (bin | hex | bytes): Message.
+        payload_spec (dict): Payload specification.
 
     Returns:
         payload_data (dict): Payload data.
-    """
-```
-
-```python
-def bin_encode(payload_data, payload_spec):
-    """
-    Encodes a message from payload_data according to payload_spec.
-    Returns the message as a binary string.
-
-    Args:
-        payload_data (dict): The list of values to encode.
-        payload_spec (dict): Payload specifications.
-
-    Returns:
-        message (str): Binary string of the message.
-    """
-```
-
-```python
-def bin_decode(message, payload_spec):
-    """
-    Decodes a binary message according to payload_spec.
-
-    Args:
-        message (str): Binary string of the message.
-        payload_spec (dict): Payload specifications.
-
-    Returns:
-        payload_data (dict): Payload data.
+        meta (dict): Payload data.
     """
 ```
 
@@ -481,23 +452,45 @@ def bin_decode(message, payload_spec):
 
 One possible use case of `SPOS` is to use the same bus to send messages
 of different versions. If this is the case, `SPOS` will send the version
-in the beggining of the message and the receiver can decode with an
+in the beginning of the message and the receiver can decode with an
 array of expected payload specifications.
 
 ```
 specs = [
-    payload_spec_0,
-    payload_spec_1,
-    payload_spec_2,
-    payload_spec_3,
-    payload_spec_4,
+    payload_spec_v0,
+    payload_spec_v1,
+    payload_spec_v2,
+    payload_spec_v3,
+    payload_spec_v4,
 ]
 payload_data = spos.decode_from_specs(message, specs)
 ```
 
 To do this, all payload specifications must set `send_version` to
-`True` and set the same ammounts of `version_bits`. There must be
-only one specification for each version.
+`True`, set the same ammounts of `version_bits` and use the same `name`.
+There must be only one specification for each version.
+
+## Random payloads
+
+It may be interesting to generate random payloads for testing. The
+module `spos.random` contains functions to generate those messages
+and payload data.
+
+```python
+def random_payloads(payload_spec, output="bin"):
+    """
+    Builds a random message conforming to `payload_spec`.
+
+    Args:
+        payload_spec (dict): Payload specification.
+        output (str): Output format (bin, hex or bytes). default: "bin".
+
+    Returns:
+        message (bin | hex | bytes): Random message
+        payload_data (object): Equivalent payload_data to generate
+            message.
+    """
+```
 
 ## Command line usage
 
