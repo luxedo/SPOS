@@ -77,7 +77,6 @@ class BlockBase(abc.ABC):
         """
         Optional method for initializing block_spec
         """
-        pass
 
     def validate_block_spec_keys(self):
         """

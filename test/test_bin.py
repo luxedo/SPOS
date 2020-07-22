@@ -36,15 +36,15 @@ class TestSposBin(TestCase):
         },
     }
 
-    def encode(self, spec, payload, format):
+    def encode(self, spec, payload, output):
         proc = subprocess.run(
-            ["spos", "-f", format, "-p", spec, payload], stdout=subprocess.PIPE,
+            ["spos", "-f", output, "-p", spec, payload], stdout=subprocess.PIPE,
         )
         return proc.stdout
 
-    def decode(self, spec, message, format):
+    def decode(self, spec, message, output):
         proc = subprocess.run(
-            ["spos", "-f", format, "-d", "-p", spec, message], stdout=subprocess.PIPE,
+            ["spos", "-d", "-f", output, "-p", spec, message], stdout=subprocess.PIPE,
         )
         return proc.stdout
 

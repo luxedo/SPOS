@@ -12,8 +12,8 @@ maintaining a consistent payload size while sacrificing precision.
 Applications with limited bandwidth like [LoRa](https://lora-alliance.org/)
 or [Globalstar](https://www.globalstar.com/en-us/) are ideal candidates
 for `SPOS`. `SPOS` has implementations for
-[python3](https://github.com/luxedo/SPOS) and
-[node.js](https://github.com/luxedo/node-SPOS).
+python3 [SPOS](https://github.com/luxedo/SPOS) and
+node.js [node-SPOS](https://github.com/luxedo/node-SPOS).
 
 > In this document we will be using JSON notation to describe payload
 > specifications and payload data. For each programming language there's
@@ -128,6 +128,8 @@ payload_spec = {
 }
 ```
 
+### Payload specification keys
+
 - **name**: String that briefly describes the payload.
 
 - **version**: Positive integer representing message version.
@@ -190,21 +192,19 @@ the maximum value and underflow to the minimum.
 
 ### Block keys
 
-#### `key`
+- **key**: The key is used to get the value for the `block` in
+  `payload_data`, and then to describe it's value in the decoded messasge.
+  Optionally, the `key` can accesss a value in a nested objects using a
+  dot `.` to separate the levels. Eg:
 
-The key is used to get the value for the `block` in `payload_data`, and
-then to describe it's value in the decoded messasge. Optionally, the
-`key` can accesss a value in a nested objects using a dot `.` to separate
-the levels. Eg:
-
-```javascript
+```python
 payload_spec = {
   "name": "example nested value",
   "version": 10,
   "body": [{
     "type": "integer",
     "bits": 8,
-    "key": "nested.value"
+    "key": "nested.value"  # HERE
   }]
 payload_data = {
   "nested": {
@@ -215,26 +215,22 @@ spos.encode(payload_data, payload_spec, output="bin")
 "0b11111111"
 ```
 
-#### `value`
+- **value**: Static value for the `block` (optional).
 
-A static value for the `block` (optional).
-
-#### `type`
-
-The data type for encoding the message. There are 10 avaliable types
-for serializing data: `boolean`, `binary`, `integer`, `float`, `pad`,
-`array`, `object`, `string`, `steps`, and `categories`.
+- **type**: Data type for encoding the message. There are 10 avaliable types
+  for serializing data: `boolean`, `binary`, `integer`, `float`, `pad`,
+  `array`, `object`, `string`, `steps`, and `categories`.
 
 ---
 
 ### Types
 
-### `boolean`
+#### boolean
 
 Input: `boolean`, `integer`.
 Additional keys: `None`.
 
-#### `binary`
+#### binary
 
 The data can be a binary string or an hex string. Eg
 
@@ -251,7 +247,7 @@ Additional keys:
 
 - `bits` (int): length of the block in bits
 
-### `integer`
+#### integer
 
 Input: `integer`.
 Additional key:
@@ -259,7 +255,7 @@ Additional key:
 - `bits` (int): length of the block in bits
 - `offset` (int): An integer to offset the final value. Default: 0.
 
-### `float`
+#### float
 
 This type divides the interval between the `lower` and `upper`
 boundaries in equal parts according to the avaliable `bits`. The
@@ -275,7 +271,7 @@ Additional keys:
 - `approximation` (str), optional: Float approximation method.
   Values can be: "round", "floor", "ceil". Default: "round"
 
-#### `pad`
+#### pad
 
 Pads the message. No data is collected from this block.
 
@@ -284,11 +280,11 @@ Additional keys:
 
 - `bits` (int): length of the block in bits
 
-#### `array`
+#### array
 
 An array containing `block` values.
 
-The size in bits of this type is between `bits` (0 length) and 
+The size in bits of this type is between `bits` (0 length) and
 `bits` + `length` \* `blocks` &rarr; `bits` (full array).
 
 Input: An `array` of values allowed for the defined `block`.
@@ -297,7 +293,7 @@ Additional keys:
 - `bits` (int): Number of bits to store the maximum length of the array.
 - `blocks` (block): The `block` specification of the data in the array.
 
-#### `object`
+#### object
 
 Maps the data to an object.
 
@@ -309,7 +305,7 @@ Additional keys:
 
 - `blocklist` (blocklist): The `array` of `blocks` describing the object.
 
-#### `string`
+#### string
 
 This data type encodes the input string to base64. Characters outside the
 [base64 index table](https://en.wikipedia.org/wiki/Base64#Base64_table)
@@ -322,7 +318,7 @@ Input: `string`.
 Additional keys:
 
 - `length` (int): String length.
-- `custom_alphabeth` (object), optional: Remaps the characters to 
+- `custom_alphabeth` (object), optional: Remaps the characters to
   another index. eg: Adding support for `json` string but sacrificing
   the first 7 uppercase letters (ABCDEFG).
 
@@ -345,7 +341,7 @@ payload_spec = {
 
 ```
 
-### `steps`
+#### steps
 
 Maps a numeric value to named steps. Eg:
 
@@ -371,7 +367,7 @@ Additional keys:
 - `steps_names` (array), optional: Names for each step. If not provided the names
   are created based on steps.
 
-### `categories`
+#### categories
 
 Maps strings to categories: Eg:
 
@@ -432,7 +428,7 @@ def decode(message, payload_spec):
 
 One possible use case of `SPOS` is to use the same bus to send messages
 of different versions. If this is the case, `SPOS` will send the version
-in the header of the message and the receiver can decode with an array 
+in the header of the message and the receiver can decode with an array
 of expected payload specifications.
 
 ```

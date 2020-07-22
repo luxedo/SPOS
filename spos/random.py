@@ -89,4 +89,3 @@ def random_payloads(payload_spec, output="bin"):
 
     message = spos.encode(payload_data, payload_spec, output)
     return message, payload_data
-
