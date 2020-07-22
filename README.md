@@ -397,12 +397,11 @@ Additional keys:
 def encode(payload_data, payload_spec, output="bin"):
     """
     Encodes a message from payload_data according to payload_spec.
-    Returns the message as bytes.
 
     Args:
         payload_data (dict): Payload data.
         payload_spec (dict): Payload specification.
-        output (str): Output format (bin, hex or bytes). default: "bin".
+        output (str): Return format (bin, hex or bytes). default: "bin".
 
     Returns:
         message (bytes): Message.
@@ -412,7 +411,7 @@ def encode(payload_data, payload_spec, output="bin"):
 ```python
 def decode(message, payload_spec):
     """
-    Decodes an hex message according to payload_spec.
+    Decodes a message according to payload_spec.
 
     Args:
         message (bin | hex | bytes): Message.
@@ -420,7 +419,7 @@ def decode(message, payload_spec):
 
     Returns:
         payload_data (dict): Payload data.
-        meta (dict): Payload data.
+        meta (dict): Payload metadata.
     """
 ```
 
