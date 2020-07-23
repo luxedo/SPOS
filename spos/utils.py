@@ -85,10 +85,10 @@ def validate_payload_spec(payload_spec):
     meta = payload_spec.get("meta", {})
     if not isinstance(meta, dict):
         raise ValueError(f"meta key expected to be a dict, got {type(meta)}.")
-    if meta.get("send_version"):
-        if not isinstance(meta["send_version"], bool):
+    if meta.get("encode_version"):
+        if not isinstance(meta["encode_version"], bool):
             raise TypeError(
-                f"meta.send_version expected to be boolean, got {type(meta['send_version'])}."
+                f"meta.encode_version expected to be boolean, got {type(meta['encode_version'])}."
             )
         if not meta.get("version_bits"):
             raise KeyError("Missing key meta.version_bits.")

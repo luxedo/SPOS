@@ -109,7 +109,7 @@ payload_spec = {
   "name": "my payload",
   "version": 1
   "meta": {
-    "send_version": True,
+    "encode_version": True,
     "version_bits": 4,
     "crc8": True,
     "header": [{
@@ -130,27 +130,27 @@ payload_spec = {
 
 ### Payload specification keys
 
-- **name**: String that briefly describes the payload.
+- **name** (string): String that briefly describes the payload.
 
-- **version**: Positive integer representing message version.
+- **version** (integer): Positive integer representing message version.
 
-- **meta**: Additional configuration may be added to the payload, this
+- **meta** (object): Additional configuration may be added to the payload, this
   is done by configuring values in the `meta` object. The following
   keys are allowed:
 
-  - **send_version**: `SPOS` will send the version as the first block
+  - **encode_version** (boolean): `SPOS` will send the version as the first block
     of the message if set to `True`. This is useful when handling
     multiple messages with different versions. If this flag is set,
     `version_bits` becomess a required key.
 
-  - **version_bits**: Integer that sets the number of bits used to
-    encode the version in the header of the message.
+  - **version_bits** (integer): Sets the number of bits used to encode
+    the version in the header of the message.
 
-  - **crc8**: If `True` calculates the [CRC8](https://en.wikipedia.org/wiki/Cyclic_redundancy_check)
+  - **crc8** (boolean): If `True` calculates the [CRC8](https://en.wikipedia.org/wiki/Cyclic_redundancy_check)
     (8bits) for the message and appends it to payload. The decoder also
     checks if the CRC8 is valid.
 
-  - **header**: The `header` should be an array of [blocks](#Block)
+  - **header** (blocklist): The `header` should be an array of [blocks](#Block)
     which we call `blocklist`. In the `header` any static [value](#value)
     is not encoded in the message and when decoding the value is gathered
     from payload specification. This static block does not needs to
@@ -172,7 +172,7 @@ payload_spec = {
     }
     ```
 
-- **Body**: The `body` should be an array of [blocks](#Block) describing
+- **body** (blocklist): The `body` should be an array of [blocks](#Block) describing
   each section of the serialized message.
 
 ---
@@ -192,7 +192,7 @@ the maximum value and underflow to the minimum.
 
 ### Block keys
 
-- **key**: The key is used to get the value for the `block` in
+- **key** (string): The key is used to get the value for the `block` in
   `payload_data`, and then to describe it's value in the decoded messasge.
   Optionally, the `key` can accesss a value in a nested objects using a
   dot `.` to separate the levels. Eg:
@@ -215,9 +215,9 @@ spos.encode(payload_data, payload_spec, output="bin")
 "0b11111111"
 ```
 
-- **value**: Static value for the `block` (optional).
+- **value** (any): Static value for the `block` (optional).
 
-- **type**: Data type for encoding the message. There are 10 avaliable types
+- **type** (string): Data type for encoding the message. There are 10 avaliable types
   for serializing data: `boolean`, `binary`, `integer`, `float`, `pad`,
   `array`, `object`, `string`, `steps`, and `categories`.
 
@@ -228,6 +228,7 @@ spos.encode(payload_data, payload_spec, output="bin")
 #### boolean
 
 Input: `boolean`, `integer`.
+
 Additional keys: `None`.
 
 #### binary
@@ -243,6 +244,7 @@ This data is truncated in the least significant bits if the size of
 the string in binary is bigger than `bits`.
 
 Input: `string`.
+
 Additional keys:
 
 - `bits` (int): length of the block in bits
@@ -250,6 +252,7 @@ Additional keys:
 #### integer
 
 Input: `integer`.
+
 Additional key:
 
 - `bits` (int): length of the block in bits
@@ -263,6 +266,7 @@ serialized value is the closest to the real one by default
 ("approximation": "round").
 
 Input: `int|float`.
+
 Additional keys:
 
 - `bits` (int): length of the block in bits
@@ -276,6 +280,7 @@ Additional keys:
 Pads the message. No data is collected from this block.
 
 Input: `None`.
+
 Additional keys:
 
 - `bits` (int): length of the block in bits
@@ -288,6 +293,7 @@ The size in bits of this type is between `bits` (0 length) and
 `bits` + `length` \* `blocks` &rarr; `bits` (full array).
 
 Input: An `array` of values allowed for the defined `block`.
+
 Additional keys:
 
 - `bits` (int): Number of bits to store the maximum length of the array.
@@ -301,6 +307,7 @@ The size in bits of this type is the sum of sizes of blocks declared
 for this `block`.
 
 Input: `object`.
+
 Additional keys:
 
 - `blocklist` (blocklist): The `array` of `blocks` describing the object.
@@ -315,6 +322,7 @@ are replaced with `/` (index 62) and spaces are replaced with `+`
 The size in bits of this type is 6 \* `length`.
 
 Input: `string`.
+
 Additional keys:
 
 - `length` (int): String length.
@@ -364,6 +372,7 @@ An additional step **error** may be given on decoding if the message
 overflows for this type.
 
 Input: `int|float`.
+
 Additional keys:
 
 - `steps` (array): Array listing the boundaries of each step.
@@ -394,6 +403,7 @@ An additional category **error** may be given on decoding if the message
 overflows for this type.
 
 Input: `string`.
+
 Additional keys:
 
 - `categories` (array): The array of categories strings.
@@ -448,7 +458,7 @@ specs = [
 payload_data, meta = spos.decode_from_specs(message, specs)
 ```
 
-To do this, all payload specifications must set `send_version` to
+To do this, all payload specifications must set `encode_version` to
 `True`, set the same ammounts of `version_bits` and use the same `name`.
 There must be only one specification for each version.
 

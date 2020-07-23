@@ -63,14 +63,14 @@ def _build_meta_block(payload_spec):
 
     Returns:
         version_block (Block): A block to encode the version if
-            'meta.send_version' is set otherwise returns None.
+            'meta.encode_version' is set otherwise returns None.
         header_block (BlocK): A block to encode the header values.
         header_static (dict): Static values declared in the header.
     """
     meta_spec = payload_spec.get("meta", {})
     version_block = (
         None
-        if not meta_spec.get("send_version")
+        if not meta_spec.get("encode_version")
         else Block(
             {
                 "key": "version",
@@ -237,7 +237,7 @@ def decode_from_specs(message, specs):
     Decodes message from an avaliable pool of payload specificaions by
     matching message version with specification version.
 
-    All the payload specifications must have `meta.send_version` set
+    All the payload specifications must have `meta.encode_version` set
     and also the same value for `meta.version_bits`.
 
     Raises:

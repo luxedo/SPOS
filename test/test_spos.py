@@ -162,11 +162,11 @@ class TestMeta(TestCase):
         with self.assertRaises(KeyError):
             spos.bin_encode({"key1": "abc", "jon": False}, payload_spec)
 
-    def test_send_version(self):
+    def test_encode_version(self):
         payload_spec = {
             "name": "john",
             "version": 3,
-            "meta": {"send_version": True, "version_bits": 4},
+            "meta": {"encode_version": True, "version_bits": 4},
             "body": [{"key": "jon", "type": "boolean"}],
         }
         enc = spos.bin_encode(
@@ -178,11 +178,11 @@ class TestMeta(TestCase):
             dec_meta, {"name": "john", "version": 3},
         )
 
-    def test_send_version_type_error(self):
+    def test_encode_version_type_error(self):
         payload_spec = {
             "name": "john",
             "version": 3,
-            "meta": {"send_version": "error", "version_bits": 4},
+            "meta": {"encode_version": "error", "version_bits": 4},
             "body": [{"key": "jon", "type": "boolean"}],
         }
         with self.assertRaises(TypeError):
@@ -192,38 +192,38 @@ class TestMeta(TestCase):
         payload_spec = {
             "name": "john",
             "version": 3,
-            "meta": {"send_version": True, "version_bits": "error"},
+            "meta": {"encode_version": True, "version_bits": "error"},
             "body": [{"key": "jon", "type": "boolean"}],
         }
         with self.assertRaises(TypeError):
             spos.bin_encode({"sensor_name": "abc", "jon": False}, payload_spec)
 
-    def test_send_version_mismatch_error(self):
+    def test_encode_version_mismatch_error(self):
         payload_spec = {
             "name": "john",
             "version": 3,
-            "meta": {"send_version": True, "version_bits": 4},
+            "meta": {"encode_version": True, "version_bits": 4},
             "body": [{"key": "jon", "type": "boolean"}],
         }
         encoded = "0b00100000"
         with self.assertRaises(spos.VersionError):
             dec, dec_meta = spos.bin_decode(encoded, payload_spec)
 
-    def test_send_version_missing_version_bits(self):
+    def test_encode_version_missing_version_bits(self):
         payload_spec = {
             "name": "john",
             "version": 3,
-            "meta": {"send_version": True},
+            "meta": {"encode_version": True},
             "body": [{"key": "jon", "type": "boolean"}],
         }
         with self.assertRaises(KeyError):
             spos.bin_encode({"jon": True}, payload_spec)
 
-    def test_send_version_version_overflow(self):
+    def test_encode_version_version_overflow(self):
         payload_spec = {
             "name": "john",
             "version": 17,
-            "meta": {"send_version": True, "version_bits": 4},
+            "meta": {"encode_version": True, "version_bits": 4},
             "body": [{"key": "jon", "type": "boolean"}],
         }
         with self.assertRaises(ValueError):
@@ -234,7 +234,7 @@ class TestMeta(TestCase):
             "name": "john",
             "version": 1,
             "meta": {
-                "send_version": True,
+                "encode_version": True,
                 "version_bits": 4,
                 "header": [{"key": "my key", "value": "hello!"}],
             },
@@ -258,7 +258,7 @@ class TestMeta(TestCase):
             "name": "john",
             "version": 1,
             "meta": {
-                "send_version": True,
+                "encode_version": True,
                 "version_bits": 4,
                 "header": [{"value": "hello!"}],
             },
@@ -273,7 +273,7 @@ class TestMeta(TestCase):
             "name": "john",
             "version": 1,
             "meta": {
-                "send_version": True,
+                "encode_version": True,
                 "version_bits": 4,
                 "header": [
                     {"key": "my key", "value": "hello!", "error key": 1}
@@ -741,7 +741,7 @@ class TestDecodeFromSpecs(TestCase):
         self.payload_spec_0 = {
             "name": "my spec",
             "version": 0,
-            "meta": {"send_version": True, "version_bits": 6},
+            "meta": {"encode_version": True, "version_bits": 6},
             "body": [
                 {"key": "sensor x", "type": "boolean"},
                 {"key": "sensor y", "type": "integer", "bits": 10},
@@ -750,7 +750,7 @@ class TestDecodeFromSpecs(TestCase):
         self.payload_spec_1 = {
             "name": "my spec",
             "version": 1,
-            "meta": {"send_version": True, "version_bits": 6},
+            "meta": {"encode_version": True, "version_bits": 6},
             "body": [
                 {"key": "sensor a", "type": "float", "bits": 6},
                 {"key": "sensor b", "type": "integer", "bits": 10},
@@ -759,7 +759,7 @@ class TestDecodeFromSpecs(TestCase):
         self.payload_spec_2 = {
             "name": "my spec",
             "version": 2,
-            "meta": {"send_version": True, "version_bits": 6},
+            "meta": {"encode_version": True, "version_bits": 6},
             "body": [
                 {"key": "temperature", "type": "float", "bits": 10},
                 {"key": "sunlight", "type": "float", "bits": 8},
@@ -768,7 +768,7 @@ class TestDecodeFromSpecs(TestCase):
         self.payload_spec_3 = {
             "name": "my spec",
             "version": 3,
-            "meta": {"send_version": True, "version_bits": 6},
+            "meta": {"encode_version": True, "version_bits": 6},
             "body": [
                 {"key": "night", "type": "boolean"},
                 {"key": "fog", "type": "boolean"},
