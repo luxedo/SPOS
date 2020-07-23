@@ -35,7 +35,7 @@ class TestRandomMessageAndValue(TestCase):
             self.assertEqual(len(set(values)), 1)
             return
 
-        elif block.type not in ["array", "object"]:
+        if block.type not in ["array", "object"]:
             self.assertEqual(len(message) - 2, block.bits)
 
         self.assertGreaterEqual(len(messages), 2)
