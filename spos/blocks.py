@@ -20,11 +20,10 @@ import abc
 from string import ascii_uppercase, ascii_lowercase, digits
 import copy
 import math
-import random
 import re
 import warnings
 
-from .utils import truncate_bits, random_bits, nest_keys
+from .utils import truncate_bits, nest_keys
 from .exceptions import StaticValueMismatchWarning
 
 
@@ -73,10 +72,13 @@ class BlockBase(abc.ABC):
     @abc.abstractmethod
     def _bin_encode(self, value):
         """
-        Method for value binary encoding
+        Required method to be implemented for subclasses
         """
 
     def bin_encode(self, value):
+        """
+        Method for value binary encoding
+        """
         if self.cache_message is not None:
             return self.cache_message
         return self._bin_encode(value)
@@ -84,10 +86,13 @@ class BlockBase(abc.ABC):
     @abc.abstractmethod
     def _bin_decode(self, message):
         """
-        Method for message binary decoding
+        Required method to be implemented for subclasses
         """
 
     def bin_decode(self, message):
+        """
+        Method for binary message decoding
+        """
         value = self._bin_decode(message)
         if self.cache_value is not None:
             if value != self.cache_value:
@@ -103,18 +108,6 @@ class BlockBase(abc.ABC):
         Optional method for initializing block_spec
         """
 
-    def random_message(self):
-        """
-        Optional method for crating a random message
-        """
-        return random_bits(self.bits)
-
-    def random_value(self):
-        """
-        Optional method for crating a random value
-        """
-        return self.bin_decode(self.random_message())
-
     def validate_block_spec_keys(self):
         """
         Validates the keys of `block_spec`. Keys must be specified as
@@ -126,14 +119,14 @@ class BlockBase(abc.ABC):
                     f"Required key {key} not found for block {self}"
                 )
             if key == "blocks":
-                self.block_spec["blocks"] = Block(self.block_spec["blocks"])
+                self.blocks = Block(self.block_spec["blocks"])
             elif key == "blocklist":
-                self.block_spec["blocklist"] = [
+                self.blocklist = [
                     Block(b_spec) for b_spec in self.block_spec["blocklist"]
                 ]
             else:
                 validate_type(self.required[key], self.block_spec[key])
-            setattr(self, key, self.block_spec[key])
+                setattr(self, key, self.block_spec[key])
 
         for key in self.optional:
             if key in self.block_spec:
@@ -287,15 +280,9 @@ class PadBlock(BlockBase):
     value = True
 
     def _bin_encode(self, value=None):
-        return "0b" + "1" * self.bits
-
-    def _bin_decode(self, message):
-        return None
-
-    def random_message(self):
         return f"0b{'1' * self.bits}"
 
-    def random_value(self):
+    def _bin_decode(self, message):
         return None
 
 
@@ -329,13 +316,6 @@ class ArrayBlock(BlockBase):
     def accumulate_bits(self, message):
         length, message = self.length_block.consume(message)
         return self.bits + length * self.blocks.accumulate_bits(message)
-
-    def random_message(self):
-        length = self.length_block.random_value()
-        message = self.length_block.bin_encode(length)
-        for _ in range(length):
-            message += self.blocks.random_message()[2:]
-        return message
 
 
 class ObjectBlock(BlockBase):
@@ -392,9 +372,6 @@ class ObjectBlock(BlockBase):
             _, message = block.consume(message)
             acc += bits
         return acc
-
-    def random_message(self):
-        return f"0b{''.join([block.random_message()[2:] for block in self.blocklist])}"
 
 
 class StringBlock(BlockBase):
@@ -479,13 +456,6 @@ class StepsBlock(BlockBase):
             else "error"
         )
 
-    def random_value(self):
-        steps = self.steps + [self.steps[0] - 1]
-        return random.choice(steps)
-
-    def random_message(self):
-        return self.bin_encode(self.random_value())
-
 
 class CategoriesBlock(BlockBase):
     required = {"categories": list}
@@ -510,12 +480,6 @@ class CategoriesBlock(BlockBase):
         return (
             self.categories[value] if value < len(self.categories) else "error"
         )
-
-    def random_value(self):
-        return random.choice(self.categories[:-1])
-
-    def random_message(self):
-        return self.bin_encode(self.random_value())
 
 
 # ---------------------------------------------------------------------

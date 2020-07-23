@@ -33,7 +33,14 @@ setuptools.setup(
     python_requires=">=3.7",
     install_requires=["crc8==0.1.0"],
     extra_require={
-        "dev": ["flake8==3.8.3", "black==19.10b0", "pre-commit==2.6.0"]
+        "dev": [
+            "pytest==5.4.1",
+            "pytest-cov==2.8.1",
+            "coverage==5.0.3",
+            "flake8==3.8.3",
+            "black==19.10b0",
+            "pre-commit==2.6.0",
+        ]
     },
     keywords="serializer LoRa Globalstar low-bandwidth",
     classifiers=[

@@ -12,8 +12,8 @@ maintaining a consistent payload size while sacrificing precision.
 Applications with limited bandwidth like [LoRa](https://lora-alliance.org/)
 or [Globalstar](https://www.globalstar.com/en-us/) are ideal candidates
 for `SPOS`. `SPOS` has implementations for
-python3 [SPOS](https://github.com/luxedo/SPOS) and
-node.js [node-SPOS](https://github.com/luxedo/node-SPOS).
+python3 ([SPOS](https://github.com/luxedo/SPOS)) and
+node.js ([node-SPOS](https://github.com/luxedo/node-SPOS)).
 
 > In this document we will be using JSON notation to describe payload
 > specifications and payload data. For each programming language there's
