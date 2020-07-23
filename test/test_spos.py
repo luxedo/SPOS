@@ -13,9 +13,8 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
-from spos.blocks import truncate_bits
-from . import TestCase
 import spos
+from . import TestCase
 
 
 class TestValidatePayloadSpec(TestCase):
@@ -86,11 +85,29 @@ class TestValidatePayloadSpec(TestCase):
         payload_spec = {
             "name": "john",
             "version": 1,
-            "body": [{"key": "jon", "type": "boolean"},],
+            "body": [{"key": "jon", "type": "boolean"}],
             "extra": "key",
         }
         with self.assertRaises(ValueError):
             spos.bin_encode({"jon": False}, payload_spec)
+
+    def test_colliding_nested_keys(self):
+        payload_spec = {
+            "name": "john",
+            "version": 1,
+            "body": [
+                {"key": "jon.fearless", "type": "boolean"},
+                {
+                    "key": "jon",
+                    "type": "object",
+                    "blocklist": [
+                        {"key": "fearless", "type": "integer", "bits": 10}
+                    ],
+                },
+            ],
+        }
+        with self.assertRaises(KeyError):
+            spos.bin_encode({"jon": {"fearless": False}}, payload_spec)
 
 
 class TestMeta(TestCase):
@@ -108,15 +125,25 @@ class TestMeta(TestCase):
         payload_spec = {
             "name": "john",
             "version": 3,
-            "meta": {"header": [{"key": "sensor_name", "type": "string", "length": 6}]},
+            "meta": {
+                "header": [
+                    {"key": "sensor_name", "type": "string", "length": 6}
+                ]
+            },
             "body": [{"key": "jon", "type": "boolean"}],
         }
-        enc = spos.bin_encode({"sensor_name": "abc", "jon": False}, payload_spec)
+        enc = spos.bin_encode(
+            {"sensor_name": "abc", "jon": False}, payload_spec
+        )
         dec, dec_meta = spos.bin_decode(enc, payload_spec)
         self.assertDict(dec, {"jon": False})
         self.assertDict(
             dec_meta,
-            {"name": "john", "version": 3, "header": {"sensor_name": "+++abc"}},
+            {
+                "name": "john",
+                "version": 3,
+                "header": {"sensor_name": "+++abc"},
+            },
         )
 
     def test_header_key_collision_error(self):
@@ -139,10 +166,12 @@ class TestMeta(TestCase):
         payload_spec = {
             "name": "john",
             "version": 3,
-            "meta": {"send_version": True, "version_bits": 4,},
+            "meta": {"send_version": True, "version_bits": 4},
             "body": [{"key": "jon", "type": "boolean"}],
         }
-        enc = spos.bin_encode({"sensor_name": "abc", "jon": False}, payload_spec)
+        enc = spos.bin_encode(
+            {"sensor_name": "abc", "jon": False}, payload_spec
+        )
         dec, dec_meta = spos.bin_decode(enc, payload_spec)
         self.assertDict(dec, {"jon": False})
         self.assertDict(
@@ -153,7 +182,7 @@ class TestMeta(TestCase):
         payload_spec = {
             "name": "john",
             "version": 3,
-            "meta": {"send_version": "error", "version_bits": 4,},
+            "meta": {"send_version": "error", "version_bits": 4},
             "body": [{"key": "jon", "type": "boolean"}],
         }
         with self.assertRaises(TypeError):
@@ -163,7 +192,7 @@ class TestMeta(TestCase):
         payload_spec = {
             "name": "john",
             "version": 3,
-            "meta": {"send_version": True, "version_bits": "error",},
+            "meta": {"send_version": True, "version_bits": "error"},
             "body": [{"key": "jon", "type": "boolean"}],
         }
         with self.assertRaises(TypeError):
@@ -173,7 +202,7 @@ class TestMeta(TestCase):
         payload_spec = {
             "name": "john",
             "version": 3,
-            "meta": {"send_version": True, "version_bits": 4,},
+            "meta": {"send_version": True, "version_bits": 4},
             "body": [{"key": "jon", "type": "boolean"}],
         }
         encoded = "0b00100000"
@@ -188,7 +217,7 @@ class TestMeta(TestCase):
             "body": [{"key": "jon", "type": "boolean"}],
         }
         with self.assertRaises(KeyError):
-            enc = spos.bin_encode({"jon": True}, payload_spec)
+            spos.bin_encode({"jon": True}, payload_spec)
 
     def test_send_version_version_overflow(self):
         payload_spec = {
@@ -198,7 +227,7 @@ class TestMeta(TestCase):
             "body": [{"key": "jon", "type": "boolean"}],
         }
         with self.assertRaises(ValueError):
-            enc = spos.bin_encode({"jon": True}, payload_spec)
+            spos.bin_encode({"jon": True}, payload_spec)
 
     def test_static_header(self):
         payload_spec = {
@@ -237,7 +266,7 @@ class TestMeta(TestCase):
         }
         t = {"jon": True}
         with self.assertRaises(KeyError):
-            enc = spos.bin_encode(t, payload_spec)
+            spos.bin_encode(t, payload_spec)
 
     def test_static_header_excess_keys_error(self):
         payload_spec = {
@@ -246,13 +275,15 @@ class TestMeta(TestCase):
             "meta": {
                 "send_version": True,
                 "version_bits": 4,
-                "header": [{"key": "my key", "value": "hello!", "error key": 1}],
+                "header": [
+                    {"key": "my key", "value": "hello!", "error key": 1}
+                ],
             },
             "body": [{"key": "jon", "type": "boolean"}],
         }
         t = {"jon": True}
         with self.assertRaises(KeyError):
-            enc = spos.bin_encode(t, payload_spec)
+            spos.bin_encode(t, payload_spec)
 
 
 class TestEncodeDecode(TestCase):
@@ -263,21 +294,18 @@ class TestEncodeDecode(TestCase):
             "version": 1,
             "body": [
                 {"key": "holy.grail", "type": "boolean"},
-                {"key": "holy.deeper.mariana", "type": "integer", "bits": 6,},
+                {"key": "holy.deeper.mariana", "type": "integer", "bits": 6},
             ],
         }
         encoded = "0b10010110"
-        decoded = {
-            "holy.grail": True,
-            "holy.deeper.mariana": 11,
-        }
+        decoded = {"holy": {"grail": True, "deeper": {"mariana": 11}}}
         enc = spos.bin_encode(payload_data, payload_spec)
         self.assertEqual(enc, encoded)
         dec, dec_meta = spos.bin_decode(encoded, payload_spec)
         self.assertDict(dec, decoded)
         self.assertDict(
             dec_meta,
-            {"name": payload_spec["name"], "version": payload_spec["version"],},
+            {"name": payload_spec["name"], "version": payload_spec["version"]},
         )
 
     def test_encode_static_value(self):
@@ -285,11 +313,16 @@ class TestEncodeDecode(TestCase):
         payload_spec = {
             "name": "test encode",
             "version": 1,
-            "meta": {"crc8": True,},
+            "meta": {"crc8": True},
             "body": [
-                {"key": "holy", "type": "string", "value": "abc", "length": 10,},
-                {"key": "type", "type": "integer", "value": 10, "bits": 6,},
-                {"key": "date", "type": "float", "bits": 6,},
+                {
+                    "key": "holy",
+                    "type": "string",
+                    "value": "abc",
+                    "length": 10,
+                },
+                {"key": "type", "type": "integer", "value": 10, "bits": 6},
+                {"key": "date", "type": "float", "bits": 6},
             ],
         }
         encoded = "0b11111011111011111011111011111011111011111001101001101101110000101000111000100100"
@@ -297,11 +330,6 @@ class TestEncodeDecode(TestCase):
             "holy": "+++++++abc",
             "type": 10,
             "date": 0.221,
-        }
-        meta = {
-            "name": payload_spec["name"],
-            "version": payload_spec["version"],
-            "crc8": True,
         }
         enc = spos.bin_encode(payload_data, payload_spec)
         self.assertEqual(enc, encoded)
@@ -321,17 +349,17 @@ class TestEncodeDecode(TestCase):
         payload_spec = {
             "name": "test encode",
             "version": 1,
-            "meta": {"crc8": True,},
+            "meta": {"crc8": True},
             "body": [
-                {"key": "holy", "type": "string", "length": 10,},
-                {"key": "version", "type": "integer", "value": 1, "bits": 6,},
+                {"key": "holy", "type": "string", "length": 10},
+                {"key": "version", "type": "integer", "value": 1, "bits": 6},
                 {
                     "key": "buffer",
                     "type": "array",
                     "bits": 8,
-                    "blocks": {"key": "buf_val", "type": "integer", "bits": 8,},
+                    "blocks": {"key": "buf_val", "type": "integer", "bits": 8},
                 },
-                {"key": "date", "type": "float", "bits": 6,},
+                {"key": "date", "type": "float", "bits": 6},
             ],
         }
         encoded = "0b111110111110111110111110111110100000101011011010100010100101000001000001000000000100000010000000110000010011111010000100"
@@ -340,11 +368,6 @@ class TestEncodeDecode(TestCase):
             "version": 1,
             "buffer": [1, 2, 3, 4],
             "date": 0.98,
-        }
-        meta = {
-            "name": payload_spec["name"],
-            "version": payload_spec["version"],
-            "crc8": True,
         }
         enc = spos.bin_encode(payload_data, payload_spec)
         self.assertEqual(enc, encoded)
@@ -421,10 +444,15 @@ class TestEncodeDecode(TestCase):
         payload_spec = {
             "name": "test payload 1",
             "version": 2,
-            "meta": {"crc8": True,},
+            "meta": {"crc8": True},
             "body": [
                 {"key": "pad", "type": "pad", "bits": 5},
-                {"key": "msg_version", "type": "integer", "value": 2, "bits": 6,},
+                {
+                    "key": "msg_version",
+                    "type": "integer",
+                    "value": 2,
+                    "bits": 6,
+                },
                 {"key": "sent_yesterday", "type": "boolean"},
                 {
                     "key": "rpi_temperature",
@@ -446,20 +474,24 @@ class TestEncodeDecode(TestCase):
                     "lower": 5,
                     "upper": 50,
                 },
-                {"key": "count_arm", "type": "integer", "bits": 6,},
-                {"key": "count_eri", "type": "integer", "bits": 6,},
-                {"key": "count_cos", "type": "integer", "bits": 6,},
-                {"key": "count_fru", "type": "integer", "bits": 6,},
-                {"key": "count_sac", "type": "integer", "bits": 6,},
+                {"key": "count_arm", "type": "integer", "bits": 6},
+                {"key": "count_eri", "type": "integer", "bits": 6},
+                {"key": "count_cos", "type": "integer", "bits": 6},
+                {"key": "count_fru", "type": "integer", "bits": 6},
+                {"key": "count_sac", "type": "integer", "bits": 6},
             ],
         }
 
         for payload_data in payloads:
             enc = spos.bin_encode(payload_data, payload_spec)
             dec, dec_meta = spos.bin_decode(enc, payload_spec)
-            payload_data["sent_yesterday"] = bool(payload_data["sent_yesterday"])
+            payload_data["sent_yesterday"] = bool(
+                payload_data["sent_yesterday"]
+            )
             payload_data["msg_version"] = 2
-            if payload_data["voltage"] < 10:  # There's an underflow in the data
+            if (
+                payload_data["voltage"] < 10
+            ):  # There's an underflow in the data
                 payload_data["voltage"] = 10
             del dec["rpi_temperature"], payload_data["rpi_temperature"]
             self.assertDict(dec, payload_data, 3)
@@ -489,7 +521,11 @@ class TestEncodeDecode(TestCase):
                     "key": "confidences",
                     "type": "array",
                     "bits": 8,
-                    "blocks": {"key": "confidence", "type": "float", "bits": 4,},
+                    "blocks": {
+                        "key": "confidence",
+                        "type": "float",
+                        "bits": 4,
+                    },
                 },
                 {
                     "key": "categories",
@@ -501,8 +537,13 @@ class TestEncodeDecode(TestCase):
                         "categories": ["bike", "skate", "scooter"],
                     },
                 },
-                {"key": "msg_version", "type": "integer", "value": 1, "bits": 6,},
-                {"key": "timestamp", "type": "integer", "bits": 32,},
+                {
+                    "key": "msg_version",
+                    "type": "integer",
+                    "value": 1,
+                    "bits": 6,
+                },
+                {"key": "timestamp", "type": "integer", "bits": 32},
                 {
                     "key": "voltage",
                     "type": "float",
@@ -527,7 +568,7 @@ class TestEncodeDecode(TestCase):
         self.assertDict(dec, payload_data, 3)
         self.assertDict(
             dec_meta,
-            {"name": payload_spec["name"], "version": payload_spec["version"],},
+            {"name": payload_spec["name"], "version": payload_spec["version"]},
         )
 
     def test_hex_encode_decode_0(self):
@@ -536,17 +577,16 @@ class TestEncodeDecode(TestCase):
             "name": "test encode",
             "version": 1,
             "body": [
-                {"key": "holy", "type": "string", "length": 11,},
+                {"key": "holy", "type": "string", "length": 11},
                 {
                     "key": "buffer",
                     "type": "array",
                     "bits": 8,
-                    "blocks": {"key": "buf_val", "type": "integer", "bits": 9,},
+                    "blocks": {"key": "buf_val", "type": "integer", "bits": 9},
                 },
-                {"key": "date", "type": "float", "bits": 7,},
+                {"key": "date", "type": "float", "bits": 7},
             ],
         }
-        encoded = "0b111110111110111110111110111110100000101011011010100010100101000001000001000000000100000010000000110000010011111010000100"
         decoded = {
             "holy": "++++++grail",
             "buffer": [1, 2],
@@ -557,7 +597,7 @@ class TestEncodeDecode(TestCase):
         self.assertDict(dec, decoded)
         self.assertDict(
             dec_meta,
-            {"name": payload_spec["name"], "version": payload_spec["version"],},
+            {"name": payload_spec["name"], "version": payload_spec["version"]},
         )
 
     def test_encode_decode_0(self):
@@ -565,17 +605,17 @@ class TestEncodeDecode(TestCase):
         payload_spec = {
             "name": "test encode",
             "version": 1,
-            "meta": {"crc8": True,},
+            "meta": {"crc8": True},
             "body": [
-                {"key": "holy", "type": "string", "length": 10,},
-                {"key": "version", "type": "integer", "value": 1, "bits": 6,},
+                {"key": "holy", "type": "string", "length": 10},
+                {"key": "version", "type": "integer", "value": 1, "bits": 6},
                 {
                     "key": "buffer",
                     "type": "array",
                     "bits": 8,
-                    "blocks": {"key": "buf_val", "type": "integer", "bits": 8,},
+                    "blocks": {"key": "buf_val", "type": "integer", "bits": 8},
                 },
-                {"key": "date", "type": "float", "bits": 6,},
+                {"key": "date", "type": "float", "bits": 6},
             ],
         }
         encoded = b"\xfb\xef\xbe\xfa\n\xda\x8aPA\x00@\x80\xc1>\x84"
@@ -674,7 +714,7 @@ class TestEncodeDecode(TestCase):
         self.assertDict(dec, payload_data)
         self.assertDict(
             dec_meta,
-            {"name": payload_spec["name"], "version": payload_spec["version"],},
+            {"name": payload_spec["name"], "version": payload_spec["version"]},
         )
 
     def test_decode_unknown_message_error(self):
@@ -683,7 +723,6 @@ class TestEncodeDecode(TestCase):
             "version": 2,
             "body": [{"key": "temperature", "type": "float", "bits": 10}],
         }
-        t = {"temperature": 0.3}
         with self.assertRaises(ValueError):
             spos.decode(["error"], payload_spec)
 
@@ -693,7 +732,6 @@ class TestEncodeDecode(TestCase):
             "version": 2,
             "body": [{"key": "temperature", "type": "float", "bits": 10}],
         }
-        t = {"temperature": 0.3}
         with self.assertRaises(ValueError):
             spos.decode("error string", payload_spec)
 
@@ -703,7 +741,7 @@ class TestDecodeFromSpecs(TestCase):
         self.payload_spec_0 = {
             "name": "my spec",
             "version": 0,
-            "meta": {"send_version": True, "version_bits": 6,},
+            "meta": {"send_version": True, "version_bits": 6},
             "body": [
                 {"key": "sensor x", "type": "boolean"},
                 {"key": "sensor y", "type": "integer", "bits": 10},
@@ -712,7 +750,7 @@ class TestDecodeFromSpecs(TestCase):
         self.payload_spec_1 = {
             "name": "my spec",
             "version": 1,
-            "meta": {"send_version": True, "version_bits": 6,},
+            "meta": {"send_version": True, "version_bits": 6},
             "body": [
                 {"key": "sensor a", "type": "float", "bits": 6},
                 {"key": "sensor b", "type": "integer", "bits": 10},
@@ -721,7 +759,7 @@ class TestDecodeFromSpecs(TestCase):
         self.payload_spec_2 = {
             "name": "my spec",
             "version": 2,
-            "meta": {"send_version": True, "version_bits": 6,},
+            "meta": {"send_version": True, "version_bits": 6},
             "body": [
                 {"key": "temperature", "type": "float", "bits": 10},
                 {"key": "sunlight", "type": "float", "bits": 8},
@@ -730,7 +768,7 @@ class TestDecodeFromSpecs(TestCase):
         self.payload_spec_3 = {
             "name": "my spec",
             "version": 3,
-            "meta": {"send_version": True, "version_bits": 6,},
+            "meta": {"send_version": True, "version_bits": 6},
             "body": [
                 {"key": "night", "type": "boolean"},
                 {"key": "fog", "type": "boolean"},

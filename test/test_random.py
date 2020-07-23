@@ -30,7 +30,12 @@ class TestRandomMessageAndValue(TestCase):
             messages.add(message)
             values.append(block.bin_decode(message))
 
-        if block.type not in ["array", "object"]:
+        if block.type == "pad":
+            self.assertEqual(len(messages), 1)
+            self.assertEqual(len(set(values)), 1)
+            return
+
+        elif block.type not in ["array", "object"]:
             self.assertEqual(len(message) - 2, block.bits)
 
         self.assertGreaterEqual(len(messages), 2)
@@ -129,10 +134,14 @@ class TestRandomMessageAndValue(TestCase):
         self.evaluate_message(block_spec)
 
     def test_message_steps(self):
-        block_spec = {"key": "steps", "type": "steps", "steps": [0, 1, 2, 3, 4, 5]}
+        block_spec = {
+            "key": "steps",
+            "type": "steps",
+            "steps": [0, 1, 2, 3, 4, 5],
+        }
         self.evaluate_message(block_spec)
 
-    def test_message_steps(self):
+    def test_message_categories(self):
         block_spec = {
             "key": "categories",
             "type": "categories",
@@ -194,10 +203,14 @@ class TestRandomMessageAndValue(TestCase):
         self.evaluate_value(block_spec)
 
     def test_value_steps(self):
-        block_spec = {"key": "steps", "type": "steps", "steps": [0, 1, 2, 3, 4, 5]}
+        block_spec = {
+            "key": "steps",
+            "type": "steps",
+            "steps": [0, 1, 2, 3, 4, 5],
+        }
         self.evaluate_value(block_spec)
 
-    def test_value_steps(self):
+    def test_value_categories(self):
         block_spec = {
             "key": "categories",
             "type": "categories",
@@ -229,15 +242,15 @@ class TestRandomPayload(TestCase):
                 ],
             },
             "body": [
-                {"key": "holy", "type": "string", "length": 10,},
-                {"key": "version", "type": "integer", "value": 1, "bits": 6,},
+                {"key": "holy", "type": "string", "length": 10},
+                {"key": "version", "type": "integer", "value": 1, "bits": 6},
                 {
                     "key": "buffer",
                     "type": "array",
                     "bits": 8,
-                    "blocks": {"key": "buf_val", "type": "integer", "bits": 8,},
+                    "blocks": {"key": "buf_val", "type": "integer", "bits": 8},
                 },
-                {"key": "date", "type": "float", "bits": 6,},
+                {"key": "date", "type": "float", "bits": 6},
             ],
         }
         self.evaluate(payload_spec)

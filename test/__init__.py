@@ -19,13 +19,17 @@ import unittest
 class TestCase(unittest.TestCase):
     def assertClose(self, val1, val2, delta=0.01, error_msg=""):
         error_msg = (
-            error_msg if error_msg else "Values {0} - {1} differ.".format(val1, val2)
+            error_msg
+            if error_msg
+            else "Values {0} - {1} differ.".format(val1, val2)
         )
         self.assertTrue(abs(val1 - val2) < delta, error_msg)
 
     def assertArray(self, arr1, arr2, delta=0.01, error_msg=""):
         error_msg = (
-            error_msg if error_msg else "Arrays differ:\n{0}\n{1}".format(arr1, arr2)
+            error_msg
+            if error_msg
+            else "Arrays differ:\n{0}\n{1}".format(arr1, arr2)
         )
         self.assertEqual(len(arr1), len(arr2), error_msg)
         for i, _ in enumerate(arr1):
@@ -38,7 +42,9 @@ class TestCase(unittest.TestCase):
 
     def assertDict(self, dict1, dict2, delta=0.01, error_msg=""):
         error_msg = (
-            error_msg if error_msg else "Dicts differ:\n{0}\n{1}".format(dict1, dict2)
+            error_msg
+            if error_msg
+            else "Dicts differ:\n{0}\n{1}".format(dict1, dict2)
         )
         self.assertEqual(dict1.keys(), dict2.keys(), error_msg)
         for key in dict1:

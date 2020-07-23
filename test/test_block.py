@@ -13,6 +13,8 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
+import warnings
+
 from spos.blocks import truncate_bits
 from . import TestCase
 import spos
@@ -50,12 +52,22 @@ class TestValidateBlock(TestCase):
             spos.Block(block)
 
     def test_wrong_type_for_optional_key(self):
-        block = {"key": "aloha", "type": "integer", "bits": 1, "offset": "mattata"}
+        block = {
+            "key": "aloha",
+            "type": "integer",
+            "bits": 1,
+            "offset": "mattata",
+        }
         with self.assertRaises(TypeError):
             spos.Block(block)
 
     def test_invalid_key(self):
-        block = {"key": "aloha", "type": "integer", "bits": 1, "mattata": "mattata"}
+        block = {
+            "key": "aloha",
+            "type": "integer",
+            "bits": 1,
+            "mattata": "mattata",
+        }
         with self.assertRaises(KeyError):
             spos.Block(block)
 
@@ -288,7 +300,7 @@ class TestBlock(TestCase):
             "key": "integer array",
             "type": "array",
             "bits": 3,
-            "blocks": {"key": "array val", "type": "integer", "bits": 3,},
+            "blocks": {"key": "array val", "type": "integer", "bits": 3},
         }
         t = [1, 2, 3, 4]
         a = "0b100001010011100"
@@ -300,7 +312,7 @@ class TestBlock(TestCase):
             "key": "truncate array",
             "type": "array",
             "bits": 2,
-            "blocks": {"key": "array val", "type": "integer", "bits": 3,},
+            "blocks": {"key": "array val", "type": "integer", "bits": 3},
         }
         t = [1, 2, 3, 4, 5]
         a = "0b11001010011"
@@ -313,7 +325,7 @@ class TestBlock(TestCase):
             "key": "empty array",
             "type": "array",
             "bits": 7,
-            "blocks": {"key": "array val", "type": "integer", "bits": 3,},
+            "blocks": {"key": "array val", "type": "integer", "bits": 3},
         }
         t = []
         a = "0b0000000"
@@ -329,7 +341,7 @@ class TestBlock(TestCase):
                 "key": "array val 1",
                 "type": "array",
                 "bits": 3,
-                "blocks": {"key": "array val 2", "type": "integer", "bits": 3,},
+                "blocks": {"key": "array val 2", "type": "integer", "bits": 3},
             },
         }
         t = [[1, 2], [3, 4, 5]]
@@ -366,7 +378,7 @@ class TestBlock(TestCase):
                             "key": "nKey2",
                             "type": "object",
                             "blocklist": [
-                                {"key": "nKey3", "type": "float", "bits": 8,}
+                                {"key": "nKey3", "type": "float", "bits": 8}
                             ],
                         },
                     ],
@@ -375,7 +387,76 @@ class TestBlock(TestCase):
         }
         t = {"key1": 6, "key2": {"nKey": False, "nKey2": {"nKey3": 0.8}}}
         a = "0b110011001100"
-        # self.assertEqual(spos.encode_block(t, block), a)
+        self.assertEqual(spos.encode_block(t, block), a)
+        self.assertDict(spos.decode_block(a, block), t)
+
+    def test_object_dot_notation_0(self):
+        block = {
+            "key": "object",
+            "type": "object",
+            "blocklist": [
+                {"key": "key1", "type": "integer", "bits": 3},
+                {"key": "key2.surprise", "type": "string", "length": 5},
+                {
+                    "key": "key2",
+                    "type": "object",
+                    "blocklist": [
+                        {"key": "nKey", "type": "boolean"},
+                        {
+                            "key": "nKey2",
+                            "type": "object",
+                            "blocklist": [
+                                {"key": "nKey3", "type": "float", "bits": 8}
+                            ],
+                        },
+                    ],
+                },
+            ],
+        }
+        t = {
+            "key1": 6,
+            "key2": {
+                "surprise": "hello",
+                "nKey": False,
+                "nKey2": {"nKey3": 0.8},
+            },
+        }
+        a = "0b110100001011110100101100101101000011001100"
+        self.assertEqual(spos.encode_block(t, block), a)
+        self.assertDict(spos.decode_block(a, block), t)
+
+    def test_object_dot_notation_1(self):
+        block = {
+            "key": "object",
+            "type": "object",
+            "blocklist": [
+                {"key": "key1.nest1.a", "type": "integer", "bits": 3},
+                {"key": "key1.nest1.b", "type": "string", "length": 5},
+                {"key": "key1.nest1.c", "type": "integer", "bits": 3},
+                {
+                    "key": "key1",
+                    "type": "object",
+                    "blocklist": [
+                        {"key": "nest1.d", "type": "integer", "bits": 3},
+                        {
+                            "key": "nest1",
+                            "type": "object",
+                            "blocklist": [
+                                {"key": "e", "type": "integer", "bits": 3},
+                                {"key": "f", "type": "integer", "bits": 3},
+                            ],
+                        },
+                    ],
+                },
+            ],
+        }
+        t = {
+            "key1": {
+                "nest1": {"a": 1, "b": "hello", "c": 2, "d": 3, "e": 4, "f": 5}
+            },
+        }
+        a = "0b001100001011110100101100101101000010011100101"
+        self.assertEqual(spos.encode_block(t, block), a)
         self.assertDict(spos.decode_block(a, block), t)
 
     def test_object_key_error(self):
@@ -426,7 +507,6 @@ class TestBlock(TestCase):
         t = "test"
         a = "0b111110111110101101011110101100101101"
         t_dec = "  test"
-        b = spos.encode_block(t, block)
         self.assertEqual(spos.encode_block(t, block), a)
         self.assertEqual(spos.decode_block(a, block), t_dec)
 
@@ -508,6 +588,20 @@ class TestBlock(TestCase):
         with self.assertRaises(ValueError):
             spos.decode_block(a, block)
 
+    def test_steps_error_unordered_steps(self):
+        block = {
+            "key": "steps",
+            "type": "steps",
+            "steps": [5, 0, 10],
+            "steps_names": ["one", "two"],
+        }
+        t = 1
+        a = "0b10"
+        with self.assertRaises(ValueError):
+            spos.encode_block(t, block)
+        with self.assertRaises(ValueError):
+            spos.decode_block(a, block)
+
     def test_categories_block_0(self):
         block = {
             "key": "categories",
@@ -561,15 +655,24 @@ class TestBlock(TestCase):
         }
         t = "unknown"
         a = "0b100"
-        t_dec = "error"
+        t_dec = "unknown"
         self.assertEqual(spos.encode_block(t, block), a)
+        self.assertEqual(spos.decode_block(a, block), t_dec)
+
+    def test_categories_block_overflow(self):
+        block = {
+            "key": "categories",
+            "type": "categories",
+            "categories": ["critical", "low", "charged", "full"],
+        }
+        a = "0b111"
+        t_dec = "error"
         self.assertEqual(spos.decode_block(a, block), t_dec)
 
     def test_crc_bin(self):
         t = "0b1011110010110010"
         a = "0b10100100"
         b = "0b101111001011001010100100"
-        # block = {"key": "crc BIN test", "type": "crc8"}
         self.assertEqual(spos.create_crc8(t), a)
         self.assertEqual(spos.check_crc8(b), True)
 
@@ -577,23 +680,45 @@ class TestBlock(TestCase):
         t = "0xABCD35"
         a = "0b00101011"
         b = "0xABCD352B"
-        block = {"key": "crc HEX test", "type": "crc8"}
         self.assertEqual(spos.create_crc8(t), a)
         self.assertEqual(spos.check_crc8(b), True)
 
     def test_validate_encode_input_types_decorator_keyword_argument(self):
         block = {"key": "boolean encode true", "type": "boolean"}
-        t = True
-        a = "0b1"
         block = spos.Block(block)
         block.bin_encode(value=True)
 
     def test_validate_encode_input_types_decorator_type_error(self):
         block = {"key": "boolean encode true", "type": "boolean"}
-        t = True
-        a = "0b1"
         block = spos.Block(block)
         with self.assertRaises(TypeError):
             block.bin_encode(True, "err")
         with self.assertRaises(TypeError):
             block.bin_encode()
+
+    def test_static_value(self):
+        static_value = "0b10101"
+        block = {
+            "key": "binary bin",
+            "type": "binary",
+            "value": static_value,
+            "bits": 5,
+        }
+        self.assertEqual(spos.encode_block(None, block), static_value)
+        self.assertEqual(spos.encode_block("0b11", block), static_value)
+        self.assertEqual(spos.encode_block(static_value, block), static_value)
+
+    def test_static_value_mismatch_warning(self):
+        static_value = "0b10101"
+        block = {
+            "key": "binary bin",
+            "type": "binary",
+            "value": static_value,
+            "bits": 5,
+        }
+        with warnings.catch_warnings(record=True) as w:
+            self.assertEqual(spos.decode_block("0b11111", block), static_value)
+            self.assertEqual(len(w), 1)
+            self.assertTrue(
+                issubclass(w[-1].category, spos.StaticValueMismatchWarning)
+            )

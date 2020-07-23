@@ -38,13 +38,15 @@ class TestSposBin(TestCase):
 
     def encode(self, spec, payload, output):
         proc = subprocess.run(
-            ["spos", "-f", output, "-p", spec, payload], stdout=subprocess.PIPE,
+            ["spos", "-f", output, "-p", spec, payload],
+            stdout=subprocess.PIPE,
         )
         return proc.stdout
 
     def decode(self, spec, message, output):
         proc = subprocess.run(
-            ["spos", "-d", "-f", output, "-p", spec, message], stdout=subprocess.PIPE,
+            ["spos", "-d", "-f", output, "-p", spec, message],
+            stdout=subprocess.PIPE,
         )
         return proc.stdout
 
@@ -56,17 +58,17 @@ class TestSposBin(TestCase):
                     self.assertEqual(message, fp.read())
 
             with self.subTest(f"{name}_encode_hex"):
-                message = self.encode(files["spec"], files["payload"], "hex").decode(
-                    "ascii"
-                )
+                message = self.encode(
+                    files["spec"], files["payload"], "hex"
+                ).decode("ascii")
                 with open(files["message"], "rb") as fp:
                     expected = f"0x{fp.read().hex().upper()}"
                     self.assertEqual(message, expected)
 
             with self.subTest(f"{name}_encode_bin"):
-                message = self.encode(files["spec"], files["payload"], "bin").decode(
-                    "ascii"
-                )
+                message = self.encode(
+                    files["spec"], files["payload"], "bin"
+                ).decode("ascii")
                 with open(files["message"], "rb") as fp:
                     expected = fp.read().hex()
                     bits = len(expected) * 4
@@ -77,9 +79,9 @@ class TestSposBin(TestCase):
     def test_decode(self):
         for name, files in self.test_files.items():
             with self.subTest(f"{name}_decode_bytes"):
-                data = self.decode(files["spec"], files["message"], "bytes").decode(
-                    "ascii"
-                )
+                data = self.decode(
+                    files["spec"], files["message"], "bytes"
+                ).decode("ascii")
                 with open(files["expected"], "r") as fp:
                     self.assertDict(json.loads(data)["body"], json.load(fp))
 
@@ -88,7 +90,9 @@ class TestSposBin(TestCase):
                 with open(files["message"], "rb") as fp:
                     tmp.write(bytes(fp.read().hex(), encoding="ascii"))
                 tmp.seek(0)
-                data = self.decode(files["spec"], tmp.name, "hex").decode("ascii")
+                data = self.decode(files["spec"], tmp.name, "hex").decode(
+                    "ascii"
+                )
                 tmp.close()
                 with open(files["expected"], "r") as fp:
                     self.assertDict(json.loads(data)["body"], json.load(fp))
@@ -102,7 +106,9 @@ class TestSposBin(TestCase):
                     bin_message = bin_message.zfill(bits)
                     tmp.write(bytes(bin_message, encoding="ascii"))
                 tmp.seek(0)
-                data = self.decode(files["spec"], tmp.name, "bin").decode("ascii")
+                data = self.decode(files["spec"], tmp.name, "bin").decode(
+                    "ascii"
+                )
                 tmp.close()
                 with open(files["expected"], "r") as fp:
                     self.assertDict(json.loads(data)["body"], json.load(fp))

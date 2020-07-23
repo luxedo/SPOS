@@ -51,7 +51,9 @@ def check_crc8(message):
     """
     if message.startswith("0x"):
         bits = len(message[2:]) * 4
-        message = "0b" + "{0}".format(bin(int(message, 16))[2:]).rjust(bits, "0")
+        message = "0b" + "{0}".format(bin(int(message, 16))[2:]).rjust(
+            bits, "0"
+        )
     crc_dec = "0b" + message[-8:]
     message = message[:-8]
     return create_crc8(message) == crc_dec

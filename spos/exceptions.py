@@ -28,3 +28,7 @@ class PayloadSpecError(Exception):
 
 class SpecsVersionError(Exception):
     pass
+
+
+class StaticValueMismatchWarning(Warning):
+    pass

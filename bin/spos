@@ -29,7 +29,9 @@ def _encode(infile, outfile, _payload_spec, format):
     _payload_spec.close()
 
     message = encode(payload_data, payload_spec, format)
-    message = message if format == "bytes" else bytes(message, encoding="ascii")
+    message = (
+        message if format == "bytes" else bytes(message, encoding="ascii")
+    )
     if outfile.name == "<stdout>":
         sys.stdout.buffer.write(message)
     else:

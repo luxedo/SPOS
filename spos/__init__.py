@@ -16,7 +16,12 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 import re
 
 from .blocks import Block
-from .exceptions import VersionError, PayloadSpecError, SpecsVersionError
+from .exceptions import (
+    VersionError,
+    PayloadSpecError,
+    SpecsVersionError,
+    StaticValueMismatchWarning,
+)
 from .checks import create_crc8, check_crc8
 from . import utils
 
@@ -67,7 +72,11 @@ def _build_meta_block(payload_spec):
         None
         if not meta_spec.get("send_version")
         else Block(
-            {"key": "version", "type": "integer", "bits": meta_spec["version_bits"],}
+            {
+                "key": "version",
+                "type": "integer",
+                "bits": meta_spec["version_bits"],
+            }
         )
     )
 
@@ -98,7 +107,9 @@ def bin_encode(payload_data, payload_spec):
     utils.validate_payload_spec(payload_spec)
     message = "0b"
 
-    version_block, header_block, header_static = _build_meta_block(payload_spec)
+    version_block, header_block, header_static = _build_meta_block(
+        payload_spec
+    )
 
     if version_block:
         message += version_block.bin_encode(payload_spec["version"])[2:]
@@ -108,7 +119,9 @@ def bin_encode(payload_data, payload_spec):
     body_block = Block({"key": "body", "type": "object", "blocklist": body})
     message += body_block.bin_encode(payload_data)[2:]
 
-    message += "0" * ((8 - (len(message[2:]) % 8)) % 8)  # pad message to fill a byte
+    message += "0" * (
+        (8 - (len(message[2:]) % 8)) % 8
+    )  # pad message to fill a byte
 
     if payload_spec.get("meta", {}).get("crc8"):
         message += create_crc8(message)[2:]
@@ -131,7 +144,9 @@ def bin_decode(message, payload_spec):
     utils.validate_payload_spec(payload_spec)
     meta = {"name": payload_spec["name"], "version": payload_spec["version"]}
 
-    version_block, header_block, header_static = _build_meta_block(payload_spec)
+    version_block, header_block, header_static = _build_meta_block(
+        payload_spec
+    )
 
     if version_block:
         msg_version, message = version_block.consume(message)
@@ -176,7 +191,11 @@ def encode(payload_data, payload_spec, output="bin"):
             "{0:02X}".format(int(message[8 * i : 8 * (i + 1)], 2))
             for i in range(len(message) // 8)
         )
-        message = message if output == "hex" else bytes(bytearray.fromhex(message[2:]))
+        message = (
+            message
+            if output == "hex"
+            else bytes(bytearray.fromhex(message[2:]))
+        )
     return message
 
 
@@ -194,13 +213,16 @@ def decode(message, payload_spec):
     """
     if isinstance(message, str):
         if not (
-            re.match("^0b[01]+$", message) or re.match("^0x[0-9a-fA-F]+$", message)
+            re.match("^0b[01]+$", message)
+            or re.match("^0x[0-9a-fA-F]+$", message)
         ):
             raise ValueError(
                 "String message must be either a binary string (0b) or an hex string (0x)"
             )
     elif not isinstance(message, bytes):
-        raise ValueError(f"Message must be either str or bytes, got {type(message)}")
+        raise ValueError(
+            f"Message must be either str or bytes, got {type(message)}"
+        )
 
     message = f"0x{message.hex()}" if isinstance(message, bytes) else message
     if message.startswith("0x"):

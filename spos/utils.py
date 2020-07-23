@@ -15,6 +15,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 import collections
 import copy
+import random
 
 from .exceptions import SpecsVersionError
 
@@ -30,6 +31,19 @@ def truncate_bits(bit_str, bits):
         trunc_bit_str (str): Truncated bit string.
     """
     return "0b" + "0" * (bits - len(bit_str) + 2) + bit_str[2 : bits + 2]
+
+
+def random_bits(n):
+    """
+    Returns a binary string with `n` bits.
+
+    Args:
+        n (int): Number of bits.
+
+    Returns:
+        bits (str): Binary string of random bits.
+    """
+    return f"0b{''.join([str(random.randint(0, 1)) for _ in range(n)])}"
 
 
 def validate_payload_spec(payload_spec):
@@ -50,11 +64,15 @@ def validate_payload_spec(payload_spec):
         if key not in ["name", "version", "body", "meta"]
     ]
     if any(extra_keys):
-        raise ValueError(f"Found unexpected keys {extra_keys} in payload_spec.")
+        raise ValueError(
+            f"Found unexpected keys {extra_keys} in payload_spec."
+        )
     required_keys = {"name": str, "version": int, "body": list}
     for key, tp in required_keys.items():
         if key not in payload_spec:
-            raise KeyError(f"payload_spec {payload_spec} must have key '{key}'")
+            raise KeyError(
+                f"payload_spec {payload_spec} must have key '{key}'"
+            )
         if not isinstance(payload_spec[key], tp):
             raise TypeError(
                 f"payload_spec {payload_spec['name']} key '{key}' must be of type '{tp}'"
@@ -100,13 +118,86 @@ def duplicate_keys(blocklist):
     Returns:
         dup_keys (list): List of duplicate keys.
     """
+    keys = flattened_keys(blocklist)
     return [
-        key
-        for key, count in collections.Counter(
-            [block["key"] for block in blocklist]
-        ).items()
-        if count > 1
+        key for key, count in collections.Counter(keys).items() if count > 1
     ]
+
+
+def flattened_keys(blocklist):
+    """
+    Flatten 'key' values in blocklist to dot notation. Eg:
+    block["key1"]["key2"] => block["key1.key2"]
+
+    Args:
+        blocklist
+
+    Returns
+        keys (list): List of keys.
+    """
+    keys = []
+    for block_spec in blocklist:
+        if block_spec.get("type") == "object":
+            nested = copy.deepcopy(block_spec.get("blocklist", []))
+            for nested_spec in nested:
+                nested_spec[
+                    "key"
+                ] = f"{block_spec['key']}.{nested_spec['key']}"
+            keys.extend(flattened_keys(nested))
+        else:
+            keys.append(block_spec["key"])
+    return keys
+
+
+def nest_keys(obj):
+    """
+    Nests keys in obj from dot notation. Eg:
+    obj["key1.key2"] => obj["key1"]["key2"]
+
+    Args:
+        obj (dict)
+
+    Returns
+        obj_nested (dict)
+    """
+    new_obj = {}
+    for key, value in obj.items():
+        if isinstance(value, dict):
+            value = nest_keys(value)
+        if "." in key:
+            keyp = key.split(".")[0]
+            keyr = ".".join(key.split(".")[1:])
+            value = nest_keys({keyr: value})
+            if keyp in new_obj:
+                new_obj[keyp] = merge_dicts(new_obj[keyp], value)
+            else:
+                new_obj[keyp] = value
+        else:
+            if key in new_obj:
+                new_obj[key] = merge_dicts(new_obj[key], value)
+            else:
+                new_obj[key] = value
+    return new_obj
+
+
+def merge_dicts(dict1, dict2):
+    """
+    Merges dictionaries including nested values.
+
+    Args:
+        dict1
+        dict2
+
+    Returns:
+        merged_dict
+    """
+    merged_dict = copy.deepcopy(dict1)
+    for key, value in dict2.items():
+        if key not in merged_dict:
+            merged_dict[key] = value
+        else:
+            merged_dict[key] = merge_dicts(merged_dict[key], value)
+    return merged_dict
 
 
 def validate_header(header_bl):
@@ -120,7 +211,9 @@ def validate_header(header_bl):
         KeyError: If header block does not contain 'key'.
         KeyError: If static header block does not contain 'value'.
     """
-    header_static = [block_spec for block_spec in header_bl if "value" in block_spec]
+    header_static = [
+        block_spec for block_spec in header_bl if "value" in block_spec
+    ]
 
     for block in header_static:
         if "key" not in block:

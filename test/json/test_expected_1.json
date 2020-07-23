@@ -4,9 +4,13 @@
   "temperature": 40.0,
   "voltage": 12.0,
   "rpi_temperature": "30<T<50",
-  "results.count.armigera": 3,
-  "results.count.eridania": 1,
-  "results.count.cosmioides": 2,
-  "results.count.frugiperda": 0,
-  "results.count.saccharalis": 4
+  "results": {
+    "count": {
+      "armigera": 3,
+      "eridania": 1,
+      "cosmioides": 2,
+      "frugiperda": 0,
+      "saccharalis": 4
+    }
+  }
 }

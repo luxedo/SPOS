@@ -20,7 +20,7 @@ with open("README.md", "r") as fp:
 
 setuptools.setup(
     name="spos",
-    version="1.0.0-b",
+    version="1.1.0-b",
     description="SPOS stands for Small Payload Object Serializer",
     long_description=long_description,
     long_description_content_type="text/markdown",
@@ -32,6 +32,9 @@ setuptools.setup(
     scripts=["bin/spos"],
     python_requires=">=3.7",
     install_requires=["crc8==0.1.0"],
+    extra_require={
+        "dev": ["flake8==3.8.3", "black==19.10b0", "pre-commit==2.6.0"]
+    },
     keywords="serializer LoRa Globalstar low-bandwidth",
     classifiers=[
         "Development Status :: 3 - Alpha",

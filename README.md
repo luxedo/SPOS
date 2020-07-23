@@ -357,8 +357,11 @@ payload_spec = {
 payload_data = {"bat": 0.3}  # low
 ```
 
-The number of bits for this type is the exponent of the next power of
-two of the length of `steps` + 1. In the example above it is 2 bits.
+The number of bits for this type is the closest integer above
+log2(length `steps` + 1). In the example above it is 2 bits.
+
+An additional step **error** may be given on decoding if the message
+overflows for this type.
 
 Input: `int|float`.
 Additional keys:
@@ -381,10 +384,14 @@ payload_spec = {
 payload_data = {"color": "red"}  # low
 ```
 
-The number of bits for this type is the exponent of the next power of
-two of the length of `steps` + 1. In the example above it is 2 bits.
-The category "unknown" is added to represent data that are not present
+The number of bits for this type is the closest integer above
+log2(length `steps` + 1). In the example above it is 2 bits.
+
+The category **unknown** is added to represent data that are not present
 in the `categories` array.
+
+An additional category **error** may be given on decoding if the message
+overflows for this type.
 
 Input: `string`.
 Additional keys:
