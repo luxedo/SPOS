@@ -15,45 +15,59 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 import argparse
+import io
 import json
+import re
 import sys
 
 from spos import encode, decode
+from spos.random import random_payload
 
 
-def _encode(infile, outfile, _payload_spec, format):
-    payload_data = json.load(infile)
-    infile.close()
+def read_and_close_json(buf):
+    d = json.load(buf)
+    buf.close()
+    return d
 
-    payload_spec = json.load(_payload_spec)
-    _payload_spec.close()
+
+def _encode(infile, outfile, payload_spec, format):
+    payload_data = read_and_close_json(infile)
 
     message = encode(payload_data, payload_spec, format)
     message = (
         message if format == "bytes" else bytes(message, encoding="ascii")
     )
-    if outfile.name == "<stdout>":
+    if hasattr(outfile, "name") and outfile.name == "<stdout>":
         sys.stdout.buffer.write(message)
     else:
         outfile.write(message)
     outfile.close()
 
 
-def _decode(infile, outfile, _payload_spec, format):
-    if infile.name == "<stdin>":
+def _decode(infile, outfile, payload_spec, format):
+    if hasattr(infile, "name") and infile.name == "<stdin>":
         message = sys.stdin.buffer.read()
     else:
         message = infile.read()
         infile.close()
 
-    payload_spec = json.load(_payload_spec)
-    _payload_spec.close()
-
-    message = f"0x{message.decode('ascii')}" if format == "hex" else message
-    message = f"0b{message.decode('ascii')}" if format == "bin" else message
+    if format != "bytes":
+        message = message.decode("ascii")
+        if format == "hex":
+            message = (
+                message
+                if re.match("^0[xX][0-9a-fA-F]+$", message)
+                else f"0x{message}"
+            )
+        elif format == "bin":
+            message = (
+                message if re.match("^0b[01]+$", message) else f"0b{message}"
+            )
 
     payload_data, meta = decode(message, payload_spec)
-    outfile.write(json.dumps({"meta": meta, "body": payload_data}, indent=2))
+    outfile.write(
+        json.dumps({"meta": meta, "body": payload_data}, indent=2) + "\n"
+    )
     outfile.close()
 
 
@@ -61,6 +75,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="Spos is a tool for serializing objects."
     )
+
     parser.add_argument(
         "-d", "--decode", action="store_true", help="decodes a message."
     )
@@ -78,6 +93,13 @@ if __name__ == "__main__":
         default="bytes",
         help="Output format",
     )
+
+    parser.add_argument(
+        "-r",
+        "--random",
+        action="store_true",
+        help="Creates a random message/payload_data",
+    )
     parser.add_argument(
         "infile",
         nargs="?",
@@ -85,6 +107,7 @@ if __name__ == "__main__":
         default=sys.stdin,
         help="Input file",
     )
+
     parser.add_argument(
         "outfile",
         nargs="?",
@@ -93,7 +116,20 @@ if __name__ == "__main__":
         help="Output file",
     )
     args = parser.parse_args()
+
+    payload_spec = read_and_close_json(args.payload_spec)
+
+    if args.random:
+        args.infile.detach()
+        message, payload_data = random_payload(payload_spec, output="bytes")
+        if args.decode:
+            args.infile = io.BytesIO(message)
+        else:
+            args.infile = io.BytesIO(
+                bytes(json.dumps(payload_data), encoding="ascii")
+            )
+
     if args.decode:
-        _decode(args.infile, args.outfile, args.payload_spec, args.format)
+        _decode(args.infile, args.outfile, payload_spec, args.format)
     else:
-        _encode(args.infile, args.outfile, args.payload_spec, args.format)
+        _encode(args.infile, args.outfile, payload_spec, args.format)

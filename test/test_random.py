@@ -225,7 +225,7 @@ class TestRandomPayload(TestCase):
     def evaluate(self, payload_spec):
         messages = set()
         for i in range(self.n_tests):
-            message, payload_data = srandom.random_payloads(payload_spec)
+            message, payload_data = srandom.random_payload(payload_spec)
             messages.add(message)
             self.assertEqual(spos.encode(payload_data, payload_spec), message)
         self.assertGreaterEqual(len(messages), 2)

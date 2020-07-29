@@ -101,11 +101,21 @@ def validate_payload_spec(payload_spec):
                 f"Version overflow: {payload_spec['version']} >= {2**meta['version_bits']}"
             )
 
-    header_bl = meta.get("header", {})
+    header_bl = meta.get("header", [])
     validate_header(header_bl)
     dup_keys_head = duplicate_keys(header_bl)
     if any(dup_keys_head):
         raise KeyError(f"Duplicate keys found in header: {dup_keys_head}.")
+
+    if (
+        len(header_bl)
+        + len(payload_spec["body"])
+        + meta.get("encode_version", False)
+        == 0
+    ):
+        raise ValueError(
+            "Payload specification does not contain data to send."
+        )
 
 
 def duplicate_keys(blocklist):

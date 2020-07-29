@@ -127,7 +127,7 @@ def block_random_message(block_spec):
     return RandomBlock(block_spec).random_message()
 
 
-def random_payloads(payload_spec, output="bin"):
+def random_payload(payload_spec, output="bin"):
     """
     Builds a random message conforming to `payload_spec`.
 

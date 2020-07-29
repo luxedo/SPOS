@@ -447,7 +447,7 @@ of different versions. If this is the case, `SPOS` will send the version
 in the header of the message and the receiver can decode with an array
 of expected payload specifications.
 
-```
+```python
 specs = [
     payload_spec_v0,
     payload_spec_v1,
@@ -486,7 +486,7 @@ def random_payloads(payload_spec, output="bin"):
 
 ## Command line usage
 
-```python
+```bash
 # Encode data
 cat payload_data | spos -p payload_spec.json
 

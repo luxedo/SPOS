@@ -109,6 +109,15 @@ class TestValidatePayloadSpec(TestCase):
         with self.assertRaises(KeyError):
             spos.bin_encode({"jon": {"fearless": False}}, payload_spec)
 
+    def test_empty_payload_spec_value_error(self):
+        payload_spec = {
+            "name": "john",
+            "version": 1,
+            "body": [],
+        }
+        with self.assertRaises(ValueError):
+            spos.bin_encode({}, payload_spec)
+
 
 class TestMeta(TestCase):
     def test_meta_wrong_type(self):
@@ -734,6 +743,25 @@ class TestEncodeDecode(TestCase):
         }
         with self.assertRaises(ValueError):
             spos.decode("error string", payload_spec)
+
+    def test_encode_decode_version_only(self):
+        payload_spec = {
+            "name": "test encode decode version only",
+            "version": 17,
+            "meta": {"encode_version": True, "version_bits": 6, "crc8": True},
+            "body": [],
+        }
+        enc = spos.encode({}, payload_spec)
+        dec, dec_meta = spos.decode(enc, payload_spec)
+        self.assertDict(dec, {})
+        self.assertDict(
+            dec_meta,
+            {
+                "name": payload_spec["name"],
+                "version": payload_spec["version"],
+                "crc8": True,
+            },
+        )
 
 
 class TestDecodeFromSpecs(TestCase):
