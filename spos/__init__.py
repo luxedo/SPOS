@@ -223,7 +223,7 @@ def decode(message, payload_spec):
         raise ValueError(
             f"Message must be either str or bytes, got {type(message)}"
         )
-
+    message = message.strip() if isinstance(message, str) else message
     message = f"0x{message.hex()}" if isinstance(message, bytes) else message
     if message.startswith("0x"):
         bits = len(message[2:]) * 4
