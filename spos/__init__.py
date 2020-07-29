@@ -148,6 +148,10 @@ def bin_decode(message, payload_spec):
         payload_spec
     )
 
+    if payload_spec.get("meta", {}).get("crc8"):
+        meta["crc8"] = check_crc8(message)
+        message = message[:-8]
+
     if version_block:
         msg_version, message = version_block.consume(message)
         if msg_version != meta["version"]:
@@ -160,10 +164,6 @@ def bin_decode(message, payload_spec):
 
     if header:
         meta["header"] = utils.remove_null_values(header)
-
-    if payload_spec.get("meta", {}).get("crc8"):
-        meta["crc8"] = check_crc8(message)
-        body_msg = body_msg[:-8]
 
     body = payload_spec.get("body", {})
     body_block = Block({"key": "body", "type": "object", "blocklist": body})
