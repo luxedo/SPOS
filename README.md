@@ -33,7 +33,7 @@ payload_spec = {
   "body": [{
     "type": "integer",
     "key": "constant_data",
-    "value": 2,  # 10
+    "value": 2,      # 10
     "bits": 2
   }, {
     "type": "integer",
@@ -47,10 +47,11 @@ payload_spec = {
 payload_data = {
   "int_data": 13,    # 001101
   "float_data": 0.6  # 010011 (19/32 or 0.59375)
+                     # padding 000
 }
 
 message = spos.encode(payload_data, payload_spec, output="bin")
-"0b10001101010011"
+"0b1000110110011000"
 ```
 
 Then, to decode the `message`:
@@ -74,7 +75,8 @@ payload_spec = {
     "key": "float_data",
     "bits": 6
 }]
-message = "0b10001101010011"
+
+message = "0b1000110110011000"
 decoded = spos.decode(message, payload_spec)
 decoded
 {
