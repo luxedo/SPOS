@@ -138,7 +138,7 @@ def bin_decode(message, payload_spec):
         payload_spec (dict): Payload specification.
 
     Returns:
-        payload_data (dict): Payload data.
+        body (dict): Payload data.
         meta (dict): Payload metadata.
     """
     utils.validate_payload_spec(payload_spec)
@@ -208,7 +208,7 @@ def decode(message, payload_spec):
         payload_spec (dict): Payload specification.
 
     Returns:
-        payload_data (dict): Payload data.
+        body (dict): Payload data.
         meta (dict): Payload metadata.
     """
     if isinstance(message, str):
@@ -251,7 +251,7 @@ def decode_from_specs(message, specs):
         message (bin | hex | bytes): Message.
 
     Returns:
-        payload_data (dict): Payload data.
+        body (dict): Payload data.
         meta (dict): Payload metadata.
     """
     utils.validate_specs(specs, match_versions=True)

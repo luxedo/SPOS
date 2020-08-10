@@ -435,7 +435,32 @@ def decode(message, payload_spec):
         payload_spec (dict): Payload specification.
 
     Returns:
-        payload_data (dict): Payload data.
+        body (dict): Payload data.
+        meta (dict): Payload metadata.
+    """
+```
+
+```python
+def decode_from_specs(message, specs):
+    """
+    Decodes message from an avaliable pool of payload specificaions by
+    matching message version with specification version.
+
+    All the payload specifications must have `meta.encode_version` set
+    and also the same value for `meta.version_bits`.
+
+    Raises:
+        PayloadSpecError: If message version is not in 'specs'
+        SpecsVersionError: If names doesn't match or has duplicate versions
+        Other Exceptions: For incorrect payload specification syntax.
+            see spos.utils.validate_payload_spec and
+            block.Block.validate_block_spec_keys
+
+    Args:
+        message (bin | hex | bytes): Message.
+
+    Returns:
+        body (dict): Payload data.
         meta (dict): Payload metadata.
     """
 ```
