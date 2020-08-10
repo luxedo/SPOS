@@ -17,10 +17,11 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 import argparse
 import io
 import json
+import random
 import re
 import sys
 
-from spos import encode, decode
+from spos import encode, decode, decode_from_specs
 from spos.random import random_payload
 
 
@@ -30,26 +31,25 @@ def read_and_close_json(buf):
     return d
 
 
-def _encode(infile, outfile, payload_spec, format):
-    payload_data = read_and_close_json(infile)
-
+def _encode(input, output, payload_spec, format):
+    payload_data = read_and_close_json(input)
     message = encode(payload_data, payload_spec, format)
     message = (
         message if format == "bytes" else bytes(message, encoding="ascii")
     )
-    if hasattr(outfile, "name") and outfile.name == "<stdout>":
+    if hasattr(output, "name") and output.name == "<stdout>":
         sys.stdout.buffer.write(message)
     else:
-        outfile.write(message)
-    outfile.close()
+        output.write(message)
+    output.close()
 
 
-def _decode(infile, outfile, payload_spec, format):
-    if hasattr(infile, "name") and infile.name == "<stdin>":
+def _decode(input, output, payload_specs, format, show_meta):
+    if hasattr(input, "name") and input.name == "<stdin>":
         message = sys.stdin.buffer.read()
     else:
-        message = infile.read()
-        infile.close()
+        message = input.read()
+        input.close()
 
     if format != "bytes":
         message = message.decode("ascii")
@@ -63,12 +63,15 @@ def _decode(infile, outfile, payload_spec, format):
             message = (
                 message if re.match("^0b[01]+$", message) else f"0b{message}"
             )
-
-    payload_data, meta = decode(message, payload_spec)
-    outfile.write(
-        json.dumps({"meta": meta, "body": payload_data}, indent=2) + "\n"
-    )
-    outfile.close()
+    if len(payload_specs) == 1:
+        decoded = decode(message, payload_specs[0])
+    else:
+        decoded = decode_from_specs(message, payload_specs)
+    if show_meta:
+        output.write(json.dumps(decoded, indent=2) + "\n")
+    else:
+        output.write(json.dumps(decoded["body"], indent=2) + "\n")
+    output.close()
 
 
 if __name__ == "__main__":
@@ -81,8 +84,10 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "-p",
-        "--payload-spec",
+        "--payload-specs",
+        metavar="PAYLOAD_SPEC",
         type=argparse.FileType("r"),
+        nargs="+",
         required=True,
         help="json file payload specifications.",
     )
@@ -98,10 +103,17 @@ if __name__ == "__main__":
         "-r",
         "--random",
         action="store_true",
-        help="Creates a random message/payload_data",
+        help="Creates a random message/decoded_message",
     )
     parser.add_argument(
-        "infile",
+        "-m",
+        "--meta",
+        action="store_true",
+        help="Outputs the metadata when decoding",
+    )
+    parser.add_argument(
+        "-i",
+        "--input",
         nargs="?",
         type=argparse.FileType("rb"),
         default=sys.stdin,
@@ -109,7 +121,8 @@ if __name__ == "__main__":
     )
 
     parser.add_argument(
-        "outfile",
+        "-o",
+        "--output",
         nargs="?",
         type=argparse.FileType("wb"),
         default=sys.stdout,
@@ -117,12 +130,16 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
 
-    payload_spec = read_and_close_json(args.payload_spec)
+    payload_specs = [
+        read_and_close_json(payload_spec)
+        for payload_spec in args.payload_specs
+    ]
 
     if args.random:
-        args.infile.detach()
+        args.input.detach()
+        payload_specs = [random.choice(payload_specs)]
         message, payload_data = random_payload(
-            payload_spec, output=args.format
+            payload_specs[0], output=args.format
         )
         if args.decode:
             message = (
@@ -130,13 +147,17 @@ if __name__ == "__main__":
                 if isinstance(message, bytes)
                 else bytes(message, encoding="ascii")
             )
-            args.infile = io.BytesIO(message)
+            args.input = io.BytesIO(message)
         else:
-            args.infile = io.BytesIO(
+            args.input = io.BytesIO(
                 bytes(json.dumps(payload_data), encoding="ascii")
             )
 
     if args.decode:
-        _decode(args.infile, args.outfile, payload_spec, args.format)
+        _decode(args.input, args.output, payload_specs, args.format, args.meta)
     else:
-        _encode(args.infile, args.outfile, payload_spec, args.format)
+        if len(payload_specs) > 1:
+            raise ValueError(
+                "Specify only one specification (-p, --payload-spec) for encoding"
+            )
+        _encode(args.input, args.output, payload_specs[0], args.format)

@@ -39,14 +39,14 @@ class TestSposBin(TestCase):
 
     def encode(self, spec, payload, output):
         proc = subprocess.run(
-            ["spos", "-f", output, "-p", spec, payload],
+            ["spos", "-f", output, "-p", spec, "-i", payload],
             stdout=subprocess.PIPE,
         )
         return proc.stdout, proc
 
     def decode(self, spec, message, output):
         proc = subprocess.run(
-            ["spos", "-d", "-f", output, "-p", spec, message],
+            ["spos", "-d", "-f", output, "-p", spec, "-i", message],
             stdout=subprocess.PIPE,
         )
         return proc.stdout, proc
@@ -113,7 +113,7 @@ class TestSposBin(TestCase):
                 )
                 data = data.decode("ascii")
                 with open(files["expected"], "r") as fp:
-                    self.assertDict(json.loads(data)["body"], json.load(fp))
+                    self.assertDict(json.loads(data), json.load(fp))
 
             with self.subTest(f"{name}_decode_hex"):
                 tmp = tempfile.NamedTemporaryFile()
@@ -124,7 +124,7 @@ class TestSposBin(TestCase):
                 data = data.decode("ascii")
                 tmp.close()
                 with open(files["expected"], "r") as fp:
-                    self.assertDict(json.loads(data)["body"], json.load(fp))
+                    self.assertDict(json.loads(data), json.load(fp))
 
             with self.subTest(f"{name}_decode_bin"):
                 tmp = tempfile.NamedTemporaryFile()
@@ -139,7 +139,7 @@ class TestSposBin(TestCase):
                 data = data.decode("ascii")
                 tmp.close()
                 with open(files["expected"], "r") as fp:
-                    self.assertDict(json.loads(data)["body"], json.load(fp))
+                    self.assertDict(json.loads(data), json.load(fp))
 
     def test_random_decode(self):
         for name, files in self.test_files.items():

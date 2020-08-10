@@ -1,6 +1,10 @@
 {
   "name": "test payload",
   "version": 2,
+  "meta": {
+    "encode_version": true,
+    "version_bits": 4
+  },
   "body": [
     {
       "key": "important data",

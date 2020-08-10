@@ -75,19 +75,18 @@ payload_spec = {
     "bits": 6
 }]
 message = "0b10001101010011"
-payload_data, meta = spos.decode(message, payload_spec)
-
-meta
+decoded = spos.decode(message, payload_spec)
+decoded
 {
-  "name": "example payload",
-  "version": 1,
-}
-
-payload_data
-{
-  "constant_data": 2,
-  "int_data": 13,
-  "float_data": 0.59375
+  "meta": {
+    "name": "example payload",
+    "version": 1,
+  },
+  "body": {
+    "constant_data": 2,
+    "int_data": 13,
+    "float_data": 0.59375
+  }
 }
 ```
 
@@ -124,7 +123,6 @@ payload_spec = {
     "bits": 6,
     "offset": 273
   }],
-  "my_key": "additional data"
 }
 ```
 
@@ -480,7 +478,7 @@ specs = [
     payload_spec_v3,
     payload_spec_v4,
 ]
-payload_data, meta = spos.decode_from_specs(message, specs)
+decoded = spos.decode_from_specs(message, specs)
 ```
 
 To do this, all payload specifications must set `encode_version` to
@@ -517,6 +515,27 @@ cat payload_data | spos -p payload_spec.json
 
 # Decode data
 cat message | spos -d -p payload_spec.json
+
+# Avaliable Options
+spos --help
+usage: spos [-h] [-d] -p PAYLOAD_SPECS [PAYLOAD_SPECS ...]
+            [-f {bin,hex,bytes}] [-r] [-m] [-i [INPUT]] [-o [OUTPUT]]
+
+Spos is a tool for serializing objects.
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -d, --decode          decodes a message.
+  -p PAYLOAD_SPEC [PAYLOAD_SPEC ...], --payload-specs PAYLOAD_SPEC [PAYLOAD_SPEC ...]
+                        json file payload specifications.
+  -f {bin,hex,bytes}, --format {bin,hex,bytes}
+                        Output format
+  -r, --random          Creates a random message/decoded_message
+  -m, --meta            Outputs the metadata when decoding
+  -i [INPUT], --input [INPUT]
+                        Input file
+  -o [OUTPUT], --output [OUTPUT]
+                        Output file
 ```
 
 ## Contributors

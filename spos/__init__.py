@@ -169,7 +169,7 @@ def bin_decode(message, payload_spec):
     body_block = Block({"key": "body", "type": "object", "blocklist": body})
     body, msg_tail = body_block.consume(body_msg)
     body = utils.remove_null_values(body)
-    return body, meta
+    return {"meta": meta, "body": body}
 
 
 def encode(payload_data, payload_spec, output="bin"):
@@ -257,7 +257,7 @@ def decode_from_specs(message, specs):
     utils.validate_specs(specs, match_versions=True)
     for payload_spec in specs:
         try:
-            return bin_decode(message, payload_spec)
+            return decode(message, payload_spec)
         except VersionError:
             pass
     raise PayloadSpecError("Message does not match any version in 'specs'.")

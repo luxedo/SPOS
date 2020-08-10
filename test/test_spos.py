@@ -144,7 +144,8 @@ class TestMeta(TestCase):
         enc = spos.bin_encode(
             {"sensor_name": "abc", "jon": False}, payload_spec
         )
-        dec, dec_meta = spos.bin_decode(enc, payload_spec)
+        dec = spos.bin_decode(enc, payload_spec)
+        dec, dec_meta = dec["body"], dec["meta"]
         self.assertDict(dec, {"jon": False})
         self.assertDict(
             dec_meta,
@@ -181,7 +182,8 @@ class TestMeta(TestCase):
         enc = spos.bin_encode(
             {"sensor_name": "abc", "jon": False}, payload_spec
         )
-        dec, dec_meta = spos.bin_decode(enc, payload_spec)
+        dec = spos.bin_decode(enc, payload_spec)
+        dec, dec_meta = dec["body"], dec["meta"]
         self.assertDict(dec, {"jon": False})
         self.assertDict(
             dec_meta, {"name": "john", "version": 3},
@@ -216,7 +218,7 @@ class TestMeta(TestCase):
         }
         encoded = "0b00100000"
         with self.assertRaises(spos.VersionError):
-            dec, dec_meta = spos.bin_decode(encoded, payload_spec)
+            spos.bin_decode(encoded, payload_spec)
 
     def test_encode_version_missing_version_bits(self):
         payload_spec = {
@@ -251,7 +253,8 @@ class TestMeta(TestCase):
         }
         t = {"jon": True}
         enc = spos.bin_encode(t, payload_spec)
-        dec, dec_meta = spos.bin_decode(enc, payload_spec)
+        dec = spos.bin_decode(enc, payload_spec)
+        dec, dec_meta = dec["body"], dec["meta"]
         self.assertDict(dec, t)
         self.assertDict(
             dec_meta,
@@ -310,7 +313,8 @@ class TestEncodeDecode(TestCase):
         decoded = {"holy": {"grail": True, "deeper": {"mariana": 11}}}
         enc = spos.bin_encode(payload_data, payload_spec)
         self.assertEqual(enc, encoded)
-        dec, dec_meta = spos.bin_decode(encoded, payload_spec)
+        dec = spos.bin_decode(encoded, payload_spec)
+        dec, dec_meta = dec["body"], dec["meta"]
         self.assertDict(dec, decoded)
         self.assertDict(
             dec_meta,
@@ -342,7 +346,8 @@ class TestEncodeDecode(TestCase):
         }
         enc = spos.bin_encode(payload_data, payload_spec)
         self.assertEqual(enc, encoded)
-        dec, dec_meta = spos.bin_decode(encoded, payload_spec)
+        dec = spos.bin_decode(encoded, payload_spec)
+        dec, dec_meta = dec["body"], dec["meta"]
         self.assertDict(dec, decoded)
         self.assertDict(
             dec_meta,
@@ -380,7 +385,8 @@ class TestEncodeDecode(TestCase):
         }
         enc = spos.bin_encode(payload_data, payload_spec)
         self.assertEqual(enc, encoded)
-        dec, dec_meta = spos.bin_decode(encoded, payload_spec)
+        dec = spos.bin_decode(encoded, payload_spec)
+        dec, dec_meta = dec["body"], dec["meta"]
         self.assertDict(dec, decoded)
         self.assertDict(
             dec_meta,
@@ -493,7 +499,8 @@ class TestEncodeDecode(TestCase):
 
         for payload_data in payloads:
             enc = spos.bin_encode(payload_data, payload_spec)
-            dec, dec_meta = spos.bin_decode(enc, payload_spec)
+            dec = spos.bin_decode(enc, payload_spec)
+            dec, dec_meta = dec["body"], dec["meta"]
             payload_data["sent_yesterday"] = bool(
                 payload_data["sent_yesterday"]
             )
@@ -571,7 +578,8 @@ class TestEncodeDecode(TestCase):
             ],
         }
         enc = spos.bin_encode(payload_data, payload_spec)
-        dec, dec_meta = spos.bin_decode(enc, payload_spec)
+        dec = spos.bin_decode(enc, payload_spec)
+        dec, dec_meta = dec["body"], dec["meta"]
         payload_data["msg_version"] = 1
         payload_data["rain"] = "20<=x<30"
         self.assertDict(dec, payload_data, 3)
@@ -602,7 +610,8 @@ class TestEncodeDecode(TestCase):
             "date": 0.98,
         }
         enc = spos.encode(payload_data, payload_spec, "hex")
-        dec, dec_meta = spos.decode(enc, payload_spec)
+        dec = spos.decode(enc, payload_spec)
+        dec, dec_meta = dec["body"], dec["meta"]
         self.assertDict(dec, decoded)
         self.assertDict(
             dec_meta,
@@ -636,7 +645,8 @@ class TestEncodeDecode(TestCase):
         }
         enc = spos.encode(payload_data, payload_spec, "bytes")
         self.assertEqual(enc, encoded)
-        dec, dec_meta = spos.decode(encoded, payload_spec)
+        dec = spos.decode(encoded, payload_spec)
+        dec, dec_meta = dec["body"], dec["meta"]
         self.assertDict(dec, decoded)
         self.assertDict(
             dec_meta,
@@ -718,7 +728,8 @@ class TestEncodeDecode(TestCase):
             ],
         }
         enc = spos.encode(payload_data, payload_spec)
-        dec, dec_meta = spos.decode(enc, payload_spec)
+        dec = spos.decode(enc, payload_spec)
+        dec, dec_meta = dec["body"], dec["meta"]
         payload_data["bird sightings"] = "Condor"
         self.assertDict(dec, payload_data)
         self.assertDict(
@@ -752,7 +763,8 @@ class TestEncodeDecode(TestCase):
             "body": [],
         }
         enc = spos.encode({}, payload_spec)
-        dec, dec_meta = spos.decode(enc, payload_spec)
+        dec = spos.decode(enc, payload_spec)
+        dec, dec_meta = dec["body"], dec["meta"]
         self.assertDict(dec, {})
         self.assertDict(
             dec_meta,
@@ -812,7 +824,8 @@ class TestDecodeFromSpecs(TestCase):
     def test_decode_from_specs(self):
         t = {"sensor x": False, "sensor y": 19}
         enc = spos.bin_encode(t, self.payload_spec_0)
-        dec, dec_meta = spos.decode_from_specs(enc, self.specs)
+        dec = spos.decode_from_specs(enc, self.specs)
+        dec, dec_meta = dec["body"], dec["meta"]
         self.assertDict(dec, t)
         self.assertDict(
             dec_meta,
@@ -824,7 +837,8 @@ class TestDecodeFromSpecs(TestCase):
 
         t = {"sensor a": 0.4, "sensor b": 500}
         enc = spos.bin_encode(t, self.payload_spec_1)
-        dec, dec_meta = spos.decode_from_specs(enc, self.specs)
+        dec = spos.decode_from_specs(enc, self.specs)
+        dec, dec_meta = dec["body"], dec["meta"]
         self.assertDict(dec, t)
         self.assertDict(
             dec_meta,

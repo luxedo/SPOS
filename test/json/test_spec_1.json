@@ -1,8 +1,10 @@
 {
-  "name": "sat",
+  "name": "test payload",
   "version": 1,
   "meta": {
-    "crc8": true
+    "crc8": true,
+    "encode_version": true,
+    "version_bits": 4
   },
   "body": [
     {
