@@ -121,8 +121,15 @@ if __name__ == "__main__":
 
     if args.random:
         args.infile.detach()
-        message, payload_data = random_payload(payload_spec, output="bytes")
+        message, payload_data = random_payload(
+            payload_spec, output=args.format
+        )
         if args.decode:
+            message = (
+                message
+                if isinstance(message, bytes)
+                else bytes(message, encoding="ascii")
+            )
             args.infile = io.BytesIO(message)
         else:
             args.infile = io.BytesIO(

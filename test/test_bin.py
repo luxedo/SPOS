@@ -21,6 +21,7 @@ from . import TestCase
 
 
 class TestSposBin(TestCase):
+    n_random = 20
     test_files = {
         "test_0": {
             "spec": "test/json/test_spec_0.json",
@@ -41,34 +42,51 @@ class TestSposBin(TestCase):
             ["spos", "-f", output, "-p", spec, payload],
             stdout=subprocess.PIPE,
         )
-        return proc.stdout
+        return proc.stdout, proc
 
     def decode(self, spec, message, output):
         proc = subprocess.run(
             ["spos", "-d", "-f", output, "-p", spec, message],
             stdout=subprocess.PIPE,
         )
-        return proc.stdout
+        return proc.stdout, proc
+
+    def random_encode(self, spec, output):
+        proc = subprocess.run(
+            ["spos", "-r", "-f", output, "-p", spec], stdout=subprocess.PIPE,
+        )
+        return proc.stdout, proc
+
+    def random_decode(self, spec, output):
+        proc = subprocess.run(
+            ["spos", "-r", "-d", "-f", output, "-p", spec],
+            stdout=subprocess.PIPE,
+        )
+        return proc.stdout, proc
 
     def test_encode(self):
         for name, files in self.test_files.items():
             with self.subTest(f"{name}_encode_bytes"):
-                message = self.encode(files["spec"], files["payload"], "bytes")
+                message, proc = self.encode(
+                    files["spec"], files["payload"], "bytes"
+                )
                 with open(files["message"], "rb") as fp:
                     self.assertEqual(message, fp.read())
 
             with self.subTest(f"{name}_encode_hex"):
-                message = self.encode(
+                message, proc = self.encode(
                     files["spec"], files["payload"], "hex"
-                ).decode("ascii")
+                )
+                message = message.decode("ascii")
                 with open(files["message"], "rb") as fp:
                     expected = f"0x{fp.read().hex().upper()}"
                     self.assertEqual(message, expected)
 
             with self.subTest(f"{name}_encode_bin"):
-                message = self.encode(
+                message, proc = self.encode(
                     files["spec"], files["payload"], "bin"
-                ).decode("ascii")
+                )
+                message = message.decode("ascii")
                 with open(files["message"], "rb") as fp:
                     expected = fp.read().hex()
                     bits = len(expected) * 4
@@ -76,12 +94,24 @@ class TestSposBin(TestCase):
                     expected = "0b" + expected.zfill(bits)
                     self.assertEqual(message, expected)
 
+    def test_random_encode(self):
+        for name, files in self.test_files.items():
+            for i in range(self.n_random):
+                with self.subTest(f"{name}_random_encode{i}"):
+                    message, proc = self.random_encode(files["spec"], "bytes")
+                    self.assertEqual(proc.returncode, 0)
+                    message, proc = self.random_encode(files["spec"], "hex")
+                    self.assertEqual(proc.returncode, 0)
+                    message, proc = self.random_encode(files["spec"], "bin")
+                    self.assertEqual(proc.returncode, 0)
+
     def test_decode(self):
         for name, files in self.test_files.items():
             with self.subTest(f"{name}_decode_bytes"):
-                data = self.decode(
+                data, proc = self.decode(
                     files["spec"], files["message"], "bytes"
-                ).decode("ascii")
+                )
+                data = data.decode("ascii")
                 with open(files["expected"], "r") as fp:
                     self.assertDict(json.loads(data)["body"], json.load(fp))
 
@@ -90,9 +120,8 @@ class TestSposBin(TestCase):
                 with open(files["message"], "rb") as fp:
                     tmp.write(bytes(fp.read().hex(), encoding="ascii"))
                 tmp.seek(0)
-                data = self.decode(files["spec"], tmp.name, "hex").decode(
-                    "ascii"
-                )
+                data, proc = self.decode(files["spec"], tmp.name, "hex")
+                data = data.decode("ascii")
                 tmp.close()
                 with open(files["expected"], "r") as fp:
                     self.assertDict(json.loads(data)["body"], json.load(fp))
@@ -106,9 +135,19 @@ class TestSposBin(TestCase):
                     bin_message = bin_message.zfill(bits)
                     tmp.write(bytes(bin_message, encoding="ascii"))
                 tmp.seek(0)
-                data = self.decode(files["spec"], tmp.name, "bin").decode(
-                    "ascii"
-                )
+                data, proc = self.decode(files["spec"], tmp.name, "bin")
+                data = data.decode("ascii")
                 tmp.close()
                 with open(files["expected"], "r") as fp:
                     self.assertDict(json.loads(data)["body"], json.load(fp))
+
+    def test_random_decode(self):
+        for name, files in self.test_files.items():
+            for i in range(self.n_random):
+                with self.subTest(f"{name}_random_decode_{i}"):
+                    data, proc = self.random_encode(files["spec"], "bytes")
+                    self.assertEqual(proc.returncode, 0)
+                    data, proc = self.random_encode(files["spec"], "hex")
+                    self.assertEqual(proc.returncode, 0)
+                    data, proc = self.random_encode(files["spec"], "bin")
+                    self.assertEqual(proc.returncode, 0)
