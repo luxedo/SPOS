@@ -21,7 +21,7 @@ import random
 import re
 import sys
 
-from spos import encode, decode, decode_from_specs
+from spos import encode, decode, decode_from_specs, __version__
 from spos.random import random_payload
 
 
@@ -128,6 +128,14 @@ if __name__ == "__main__":
         default=sys.stdout,
         help="Output file",
     )
+    parser.add_argument(
+        "-v",
+        "--version",
+        action="version",
+        version=f"spos v{__version__}",
+        help="Software version",
+    )
+
     args = parser.parse_args()
 
     payload_specs = [

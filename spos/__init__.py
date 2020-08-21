@@ -25,6 +25,8 @@ from .exceptions import (
 from .checks import create_crc8, check_crc8
 from . import utils
 
+__version__ = "1.2.4-b"
+
 
 def encode_block(value, block_spec):
     """

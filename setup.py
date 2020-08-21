@@ -13,14 +13,28 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
+from os import path
 import setuptools
 
 with open("README.md", "r") as fp:
     long_description = fp.read()
 
+rootdir = path.abspath(path.dirname(__file__))
+with open(path.join(rootdir, "spos", "__init__.py"), "r") as fp:
+    version = (
+        [
+            line
+            for line in fp.read().split("\n")
+            if line.startswith("__version__")
+        ][0]
+        .split("=")[1]
+        .strip()
+        .strip('"')
+    )
+
 setuptools.setup(
     name="spos",
-    version="1.2.3-b",
+    version=version,
     description="SPOS stands for Small Payload Object Serializer",
     long_description=long_description,
     long_description_content_type="text/markdown",
