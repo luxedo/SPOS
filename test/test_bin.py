@@ -16,19 +16,15 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 import json
 import re
 import subprocess
-import tempfile
 
 from spos import random as srandom
 import spos
-from . import TestCase
+from . import TestCase, test_specs
 
 
 class TestSposBin(TestCase):
     n_random = 20
-    test_specs = {
-        "test_0": "test/json/test_spec_0.json",
-        "test_1": "test/json/test_spec_1.json",
-    }
+    test_specs = test_specs
 
     def stdin_encode(self, spec, payload, output):
         proc = subprocess.run(
@@ -131,3 +127,10 @@ class TestSposBin(TestCase):
             )
             is not None
         )
+
+
+# class CandyTestCase(unittest.TestCase):
+#     def testCandy(self):
+#         candyOutput = candy.candy()
+#
+#         assert candyOutput == "candy"

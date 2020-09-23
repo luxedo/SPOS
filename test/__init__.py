@@ -16,6 +16,12 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 import unittest
 
 
+test_specs = {
+    "test_0": "test/json/test_spec_0.json",
+    "test_1": "test/json/test_spec_1.json",
+}
+
+
 class TestCase(unittest.TestCase):
     def assertClose(self, val1, val2, delta=0.01, error_msg=""):
         error_msg = (
