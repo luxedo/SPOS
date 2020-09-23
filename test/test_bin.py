@@ -14,140 +14,120 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 import json
+import re
 import subprocess
 import tempfile
 
+from spos import random as srandom
+import spos
 from . import TestCase
 
 
 class TestSposBin(TestCase):
     n_random = 20
-    test_files = {
-        "test_0": {
-            "spec": "test/json/test_spec_0.json",
-            "payload": "test/json/test_payload_0.json",
-            "expected": "test/json/test_expected_0.json",
-            "message": "test/json/test_message_0.bin",
-        },
-        "test_1": {
-            "spec": "test/json/test_spec_1.json",
-            "payload": "test/json/test_payload_1.json",
-            "expected": "test/json/test_expected_1.json",
-            "message": "test/json/test_message_1.bin",
-        },
+    test_specs = {
+        "test_0": "test/json/test_spec_0.json",
+        "test_1": "test/json/test_spec_1.json",
     }
 
-    def encode(self, spec, payload, output):
+    def stdin_encode(self, spec, payload, output):
         proc = subprocess.run(
-            ["spos", "-f", output, "-p", spec, "-i", payload],
+            ["bin/spos", "-f", output, "-p", spec],
             stdout=subprocess.PIPE,
+            input=json.dumps(payload).encode("utf-8"),
         )
         return proc.stdout, proc
 
-    def decode(self, spec, message, output):
+    def stdin_decode(self, spec, message, output):
         proc = subprocess.run(
-            ["spos", "-d", "-f", output, "-p", spec, "-i", message],
+            ["bin/spos", "-d", "-m", "-f", output, "-p", spec],
             stdout=subprocess.PIPE,
+            input=message,
         )
         return proc.stdout, proc
 
     def random_encode(self, spec, output):
         proc = subprocess.run(
-            ["spos", "-r", "-f", output, "-p", spec], stdout=subprocess.PIPE,
+            ["bin/spos", "-r", "-f", output, "-p", spec],
+            stdout=subprocess.PIPE,
         )
         return proc.stdout, proc
 
     def random_decode(self, spec, output):
         proc = subprocess.run(
-            ["spos", "-r", "-d", "-f", output, "-p", spec],
+            ["bin/spos", "-r", "-d", "-f", output, "-p", spec],
             stdout=subprocess.PIPE,
         )
         return proc.stdout, proc
 
-    def test_encode(self):
-        for name, files in self.test_files.items():
-            with self.subTest(f"{name}_encode_bytes"):
-                message, proc = self.encode(
-                    files["spec"], files["payload"], "bytes"
-                )
-                with open(files["message"], "rb") as fp:
-                    self.assertEqual(message, fp.read())
-
-            with self.subTest(f"{name}_encode_hex"):
-                message, proc = self.encode(
-                    files["spec"], files["payload"], "hex"
-                )
-                message = message.decode("ascii")
-                with open(files["message"], "rb") as fp:
-                    expected = f"0x{fp.read().hex().upper()}"
-                    self.assertEqual(message, expected)
-
-            with self.subTest(f"{name}_encode_bin"):
-                message, proc = self.encode(
-                    files["spec"], files["payload"], "bin"
-                )
-                message = message.decode("ascii")
-                with open(files["message"], "rb") as fp:
-                    expected = fp.read().hex()
-                    bits = len(expected) * 4
-                    expected = bin(int(expected, 16))[2:]
-                    expected = "0b" + expected.zfill(bits)
-                    self.assertEqual(message, expected)
-
     def test_random_encode(self):
-        for name, files in self.test_files.items():
+        for name, payload_spec_file in self.test_specs.items():
             for i in range(self.n_random):
                 with self.subTest(f"{name}_random_encode{i}"):
-                    message, proc = self.random_encode(files["spec"], "bytes")
+                    message, proc = self.random_encode(
+                        payload_spec_file, "bytes"
+                    )
                     self.assertEqual(proc.returncode, 0)
-                    message, proc = self.random_encode(files["spec"], "hex")
+                    message, proc = self.random_encode(
+                        payload_spec_file, "hex"
+                    )
                     self.assertEqual(proc.returncode, 0)
-                    message, proc = self.random_encode(files["spec"], "bin")
+                    message, proc = self.random_encode(
+                        payload_spec_file, "bin"
+                    )
                     self.assertEqual(proc.returncode, 0)
-
-    def test_decode(self):
-        for name, files in self.test_files.items():
-            with self.subTest(f"{name}_decode_bytes"):
-                data, proc = self.decode(
-                    files["spec"], files["message"], "bytes"
-                )
-                data = data.decode("ascii")
-                with open(files["expected"], "r") as fp:
-                    self.assertDict(json.loads(data), json.load(fp))
-
-            with self.subTest(f"{name}_decode_hex"):
-                tmp = tempfile.NamedTemporaryFile()
-                with open(files["message"], "rb") as fp:
-                    tmp.write(bytes(fp.read().hex(), encoding="ascii"))
-                tmp.seek(0)
-                data, proc = self.decode(files["spec"], tmp.name, "hex")
-                data = data.decode("ascii")
-                tmp.close()
-                with open(files["expected"], "r") as fp:
-                    self.assertDict(json.loads(data), json.load(fp))
-
-            with self.subTest(f"{name}_decode_bin"):
-                tmp = tempfile.NamedTemporaryFile()
-                with open(files["message"], "rb") as fp:
-                    bin_message = fp.read().hex()
-                    bits = len(bin_message) * 4
-                    bin_message = bin(int(bin_message, 16))[2:]
-                    bin_message = bin_message.zfill(bits)
-                    tmp.write(bytes(bin_message, encoding="ascii"))
-                tmp.seek(0)
-                data, proc = self.decode(files["spec"], tmp.name, "bin")
-                data = data.decode("ascii")
-                tmp.close()
-                with open(files["expected"], "r") as fp:
-                    self.assertDict(json.loads(data), json.load(fp))
 
     def test_random_decode(self):
-        for name, files in self.test_files.items():
+        for name, payload_spec_file in self.test_specs.items():
             for i in range(self.n_random):
                 with self.subTest(f"{name}_random_decode_{i}"):
-                    data, proc = self.random_encode(files["spec"], "bytes")
+                    data, proc = self.random_decode(payload_spec_file, "bytes")
                     self.assertEqual(proc.returncode, 0)
-                    data, proc = self.random_encode(files["spec"], "hex")
+                    data, proc = self.random_decode(payload_spec_file, "hex")
                     self.assertEqual(proc.returncode, 0)
-                    data, proc = self.random_encode(files["spec"], "bin")
+                    data, proc = self.random_decode(payload_spec_file, "bin")
                     self.assertEqual(proc.returncode, 0)
+
+    def test_random_encode_then_decode(self):
+        for name, payload_spec_file in self.test_specs.items():
+            for i in range(self.n_random):
+                with self.subTest(f"{name}_random_encode_then_decode{i}"):
+                    with open(payload_spec_file, "r") as fp:
+                        payload_spec = json.load(fp)
+                    self._test_random_encode_then_decode(
+                        payload_spec, payload_spec_file, "bytes"
+                    )
+                    self._test_random_encode_then_decode(
+                        payload_spec, payload_spec_file, "bin"
+                    )
+                    self._test_random_encode_then_decode(
+                        payload_spec, payload_spec_file, "hex"
+                    )
+
+    def _test_random_encode_then_decode(
+        self, payload_spec, payload_spec_file, format
+    ):
+        message, payload_data = srandom.random_payload(payload_spec, format)
+        message_bin, proc = self.stdin_encode(
+            payload_spec_file, payload_data, format
+        )
+        message_b = (
+            message.encode("utf-8") if isinstance(message, str) else message
+        )
+        self.assertEqual(message_b, message_bin)
+        payload_bin, proc = self.stdin_decode(
+            payload_spec_file, message_b, format
+        )
+        self.assertEqual(
+            spos.decode(message, payload_spec), json.loads(payload_bin),
+        )
+
+    def test_version(self):
+        proc = subprocess.run(["bin/spos", "-v"], stdout=subprocess.PIPE,)
+        self.assertTrue(
+            re.match(
+                "^spos v[0-9]+[.][0-9]+[.][0-9]+(-([ab]|rc[0-9]+))?$",
+                str(proc.stdout, "utf-8").strip(),
+            )
+            is not None
+        )
