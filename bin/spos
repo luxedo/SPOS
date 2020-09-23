@@ -98,12 +98,18 @@ if __name__ == "__main__":
         default="bytes",
         help="Output format",
     )
-
-    parser.add_argument(
+    random_group = parser.add_mutually_exclusive_group()
+    random_group.add_argument(
         "-r",
         "--random",
         action="store_true",
         help="Creates a random message/decoded_message",
+    )
+    random_group.add_argument(
+        "-I",
+        "--random-input",
+        action="store_true",
+        help="Creates a random payload data input",
     )
     parser.add_argument(
         "-m",
@@ -143,23 +149,27 @@ if __name__ == "__main__":
         for payload_spec in args.payload_specs
     ]
 
-    if args.random:
+    if args.random or args.random_input:
         args.input.detach()
         payload_specs = [random.choice(payload_specs)]
         message, payload_data = random_payload(
             payload_specs[0], output=args.format
         )
-        if args.decode:
-            message = (
-                message
-                if isinstance(message, bytes)
-                else bytes(message, encoding="ascii")
-            )
-            args.input = io.BytesIO(message)
+        if args.random_input:
+            sys.stdout.write(json.dumps(payload_data, indent=2))
+            sys.exit(0)
         else:
-            args.input = io.BytesIO(
-                bytes(json.dumps(payload_data), encoding="ascii")
-            )
+            if args.decode:
+                message = (
+                    message
+                    if isinstance(message, bytes)
+                    else bytes(message, encoding="ascii")
+                )
+                args.input = io.BytesIO(message)
+            else:
+                args.input = io.BytesIO(
+                    bytes(json.dumps(payload_data), encoding="ascii")
+                )
 
     if args.decode:
         _decode(args.input, args.output, payload_specs, args.format, args.meta)
