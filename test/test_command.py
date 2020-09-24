@@ -27,12 +27,9 @@ class TestCommand(TestCase):
 
     def test_parser(self):
         for name, payload_spec_file in self.test_specs.items():
-            try:
-                args = command.parse(["-p", payload_spec_file])
-                for ps in args.payload_specs:
-                    ps.close()
-            except:  # noqa: E722
-                self.fail(f"parser failing for spec {payload_spec_file}")
+            args = command.parse(["-p", payload_spec_file])
+            for ps in args.payload_specs:
+                ps.close()
 
     def test_encode_decode(self):
         for name, payload_spec_file in self.test_specs.items():
@@ -49,8 +46,8 @@ class TestCommand(TestCase):
                     payload_spec_file, payload_spec, "bin"
                 )
 
-    def _test_encode_decode(self, payload_spec_file, payload_spec, format):
-        message, payload_data = srandom.random_payload(payload_spec, format)
+    def _test_encode_decode(self, payload_spec_file, payload_spec, fmt):
+        message, payload_data = srandom.random_payload(payload_spec, fmt)
 
         tmp_in = tempfile.NamedTemporaryFile()
         tmp_out = tempfile.NamedTemporaryFile()
@@ -65,13 +62,11 @@ class TestCommand(TestCase):
                 "-o",
                 tmp_out.name,
                 "-f",
-                format,
+                fmt,
             ]
         )
-        try:
-            command.main(args)
-        except:  # noqa: E722
-            self.fail("error running command")
+        command.main(args)
+
         tmp_in.close()
         tmp_out.close()
 
@@ -92,13 +87,11 @@ class TestCommand(TestCase):
                 "-o",
                 tmp_out.name,
                 "-f",
-                format,
+                fmt,
             ]
         )
-        try:
-            command.main(args)
-        except:  # noqa: E722
-            self.fail("error running command")
+        command.main(args)
+
         tmp_in.close()
         tmp_out.close()
 
@@ -109,7 +102,7 @@ class TestCommand(TestCase):
                 self._test_random_encode_decode(payload_spec_file, "hex")
                 self._test_random_encode_decode(payload_spec_file, "bin")
 
-    def _test_random_encode_decode(self, payload_spec_file, format):
+    def _test_random_encode_decode(self, payload_spec_file, fmt):
         tmp_in = tempfile.NamedTemporaryFile()
         tmp_out = tempfile.NamedTemporaryFile()
         args = command.parse(
@@ -121,14 +114,12 @@ class TestCommand(TestCase):
                 "-o",
                 tmp_out.name,
                 "-f",
-                format,
+                fmt,
                 "-r",
             ]
         )
-        try:
-            command.main(args)
-        except:  # noqa: E722
-            self.fail("error running command")
+        command.main(args)
+
         tmp_in.close()
         tmp_out.close()
 
@@ -143,16 +134,14 @@ class TestCommand(TestCase):
                 "-o",
                 tmp_out.name,
                 "-f",
-                format,
+                fmt,
                 "-r",
                 "-d",
                 "-m",
             ]
         )
-        try:
-            command.main(args)
-        except:  # noqa: E722
-            self.fail("error running command")
+        command.main(args)
+
         tmp_in.close()
         tmp_out.close()
 
@@ -167,14 +156,12 @@ class TestCommand(TestCase):
                 "-o",
                 tmp_out.name,
                 "-f",
-                format,
+                fmt,
                 "-I",
             ]
         )
-        try:
-            command.main(args)
-        except:  # noqa: E722
-            self.fail("error running command")
+        command.main(args)
+
         tmp_in.close()
         tmp_out.close()
 

@@ -101,18 +101,18 @@ class TestSposBin(TestCase):
                     )
 
     def _test_random_encode_then_decode(
-        self, payload_spec, payload_spec_file, format
+        self, payload_spec, payload_spec_file, fmt
     ):
-        message, payload_data = srandom.random_payload(payload_spec, format)
+        message, payload_data = srandom.random_payload(payload_spec, fmt)
         message_bin, proc = self.stdin_encode(
-            payload_spec_file, payload_data, format
+            payload_spec_file, payload_data, fmt
         )
         message_b = (
             message.encode("utf-8") if isinstance(message, str) else message
         )
         self.assertEqual(message_b, message_bin)
         payload_bin, proc = self.stdin_decode(
-            payload_spec_file, message_b, format
+            payload_spec_file, message_b, fmt
         )
         self.assertEqual(
             spos.decode(message, payload_spec), json.loads(payload_bin),
