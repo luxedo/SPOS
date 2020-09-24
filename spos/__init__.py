@@ -144,7 +144,12 @@ def bin_decode(message, payload_spec):
         meta (dict): Payload metadata.
     """
     utils.validate_payload_spec(payload_spec)
-    meta = {"name": payload_spec["name"], "version": payload_spec["version"]}
+    hex_message = _bin_to_hex(message)
+    meta = {
+        "name": payload_spec["name"],
+        "version": payload_spec["version"],
+        "message": hex_message,
+    }
 
     version_block, header_block, header_static = _build_meta_block(
         payload_spec
@@ -188,17 +193,45 @@ def encode(payload_data, payload_spec, output="bin"):
     """
     message = bin_encode(payload_data, payload_spec)
     if output in ("hex", "bytes"):
-        message = message[2:]
-        message = "0x" + "".join(
-            "{0:02X}".format(int(message[8 * i : 8 * (i + 1)], 2))
-            for i in range(len(message) // 8)
-        )
+        message = _bin_to_hex(message)
         message = (
             message
             if output == "hex"
             else bytes(bytearray.fromhex(message[2:]))
         )
     return message
+
+
+def _bin_to_hex(bin_message):
+    """
+    Converts message from bin to hex
+
+    Args:
+        bin_message (str)
+    Returns
+        hex_message (str)
+    """
+    bin_message = (
+        bin_message[2:] if bin_message.startswith("0b") else bin_message
+    )
+    return "0x" + "".join(
+        "{0:02x}".format(int(bin_message[8 * i : 8 * (i + 1)], 2))
+        for i in range(len(bin_message) // 8)
+    )
+
+
+def _hex_to_bin(hex_message):
+    """
+    Converts message from hex to bin
+
+    Args:
+        hex_message (str)
+    Returns
+        bin_message (str)
+    """
+    bits = len(hex_message[2:]) * 4
+    bin_message = bin(int(hex_message, 16))[2:]
+    return "0b" + bin_message.zfill(bits)
 
 
 def decode(message, payload_spec):
@@ -228,9 +261,7 @@ def decode(message, payload_spec):
     message = message.strip() if isinstance(message, str) else message
     message = f"0x{message.hex()}" if isinstance(message, bytes) else message
     if message.startswith("0x"):
-        bits = len(message[2:]) * 4
-        message = bin(int(message, 16))[2:]
-        message = "0b" + message.zfill(bits)
+        message = _hex_to_bin(message)
     return bin_decode(message, payload_spec)
 
 

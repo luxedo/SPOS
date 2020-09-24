@@ -520,8 +520,8 @@ cat message | spos -d -p payload_spec.json
 
 # Avaliable Options
 spos --help
-usage: spos [-h] [-d] -p PAYLOAD_SPECS [PAYLOAD_SPECS ...]
-            [-f {bin,hex,bytes}] [-r] [-m] [-i [INPUT]] [-o [OUTPUT]]
+usage: spos [-h] [-d] -p PAYLOAD_SPEC [PAYLOAD_SPEC ...] [-f {bin,hex,bytes}] [-r | -I] [-m] [-i [INPUT]]
+            [-o [OUTPUT]] [-v]
 
 Spos is a tool for serializing objects.
 
@@ -533,11 +533,13 @@ optional arguments:
   -f {bin,hex,bytes}, --format {bin,hex,bytes}
                         Output format
   -r, --random          Creates a random message/decoded_message
+  -I, --random-input    Creates a random payload data input
   -m, --meta            Outputs the metadata when decoding
   -i [INPUT], --input [INPUT]
                         Input file
   -o [OUTPUT], --output [OUTPUT]
                         Output file
+  -v, --version         Software version
 ```
 
 ## Contributors

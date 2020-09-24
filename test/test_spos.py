@@ -141,9 +141,10 @@ class TestMeta(TestCase):
             },
             "body": [{"key": "jon", "type": "boolean"}],
         }
-        enc = spos.bin_encode(
-            {"sensor_name": "abc", "jon": False}, payload_spec
-        )
+        payload_data = {"sensor_name": "abc", "jon": False}
+        enc = spos.bin_encode(payload_data, payload_spec)
+        hex_enc = spos.encode(payload_data, payload_spec, "hex")
+
         dec = spos.bin_decode(enc, payload_spec)
         dec, dec_meta = dec["body"], dec["meta"]
         self.assertDict(dec, {"jon": False})
@@ -152,6 +153,7 @@ class TestMeta(TestCase):
             {
                 "name": "john",
                 "version": 3,
+                "message": hex_enc,
                 "header": {"sensor_name": "+++abc"},
             },
         )
@@ -179,14 +181,14 @@ class TestMeta(TestCase):
             "meta": {"encode_version": True, "version_bits": 4},
             "body": [{"key": "jon", "type": "boolean"}],
         }
-        enc = spos.bin_encode(
-            {"sensor_name": "abc", "jon": False}, payload_spec
-        )
+        payload_data = {"sensor_name": "abc", "jon": False}
+        enc = spos.bin_encode(payload_data, payload_spec)
+        hex_enc = spos.encode(payload_data, payload_spec, "hex")
         dec = spos.bin_decode(enc, payload_spec)
         dec, dec_meta = dec["body"], dec["meta"]
         self.assertDict(dec, {"jon": False})
         self.assertDict(
-            dec_meta, {"name": "john", "version": 3},
+            dec_meta, {"name": "john", "version": 3, "message": hex_enc},
         )
 
     def test_encode_version_type_error(self):
@@ -253,6 +255,7 @@ class TestMeta(TestCase):
         }
         t = {"jon": True}
         enc = spos.bin_encode(t, payload_spec)
+        hex_enc = spos.encode(t, payload_spec, "hex")
         dec = spos.bin_decode(enc, payload_spec)
         dec, dec_meta = dec["body"], dec["meta"]
         self.assertDict(dec, t)
@@ -261,6 +264,7 @@ class TestMeta(TestCase):
             {
                 "name": payload_spec["name"],
                 "version": payload_spec["version"],
+                "message": hex_enc,
                 "header": {"my key": "hello!"},
             },
         )
@@ -312,13 +316,18 @@ class TestEncodeDecode(TestCase):
         encoded = "0b10010110"
         decoded = {"holy": {"grail": True, "deeper": {"mariana": 11}}}
         enc = spos.bin_encode(payload_data, payload_spec)
+        hex_enc = spos.encode(payload_data, payload_spec, "hex")
         self.assertEqual(enc, encoded)
         dec = spos.bin_decode(encoded, payload_spec)
         dec, dec_meta = dec["body"], dec["meta"]
         self.assertDict(dec, decoded)
         self.assertDict(
             dec_meta,
-            {"name": payload_spec["name"], "version": payload_spec["version"]},
+            {
+                "name": payload_spec["name"],
+                "version": payload_spec["version"],
+                "message": hex_enc,
+            },
         )
 
     def test_encode_static_value(self):
@@ -345,6 +354,7 @@ class TestEncodeDecode(TestCase):
             "date": 0.221,
         }
         enc = spos.bin_encode(payload_data, payload_spec)
+        hex_enc = spos.encode(payload_data, payload_spec, "hex")
         self.assertEqual(enc, encoded)
         dec = spos.bin_decode(encoded, payload_spec)
         dec, dec_meta = dec["body"], dec["meta"]
@@ -354,6 +364,7 @@ class TestEncodeDecode(TestCase):
             {
                 "name": payload_spec["name"],
                 "version": payload_spec["version"],
+                "message": hex_enc,
                 "crc8": True,
             },
         )
@@ -384,6 +395,7 @@ class TestEncodeDecode(TestCase):
             "date": 0.98,
         }
         enc = spos.bin_encode(payload_data, payload_spec)
+        hex_enc = spos.encode(payload_data, payload_spec, "hex")
         self.assertEqual(enc, encoded)
         dec = spos.bin_decode(encoded, payload_spec)
         dec, dec_meta = dec["body"], dec["meta"]
@@ -393,6 +405,7 @@ class TestEncodeDecode(TestCase):
             {
                 "name": payload_spec["name"],
                 "version": payload_spec["version"],
+                "message": hex_enc,
                 "crc8": True,
             },
         )
@@ -499,6 +512,7 @@ class TestEncodeDecode(TestCase):
 
         for payload_data in payloads:
             enc = spos.bin_encode(payload_data, payload_spec)
+            hex_enc = spos.encode(payload_data, payload_spec, "hex")
             dec = spos.bin_decode(enc, payload_spec)
             dec, dec_meta = dec["body"], dec["meta"]
             payload_data["sent_yesterday"] = bool(
@@ -516,6 +530,7 @@ class TestEncodeDecode(TestCase):
                 {
                     "name": payload_spec["name"],
                     "version": payload_spec["version"],
+                    "message": hex_enc,
                     "crc8": True,
                 },
             )
@@ -578,6 +593,7 @@ class TestEncodeDecode(TestCase):
             ],
         }
         enc = spos.bin_encode(payload_data, payload_spec)
+        hex_enc = spos.encode(payload_data, payload_spec, "hex")
         dec = spos.bin_decode(enc, payload_spec)
         dec, dec_meta = dec["body"], dec["meta"]
         payload_data["msg_version"] = 1
@@ -585,7 +601,11 @@ class TestEncodeDecode(TestCase):
         self.assertDict(dec, payload_data, 3)
         self.assertDict(
             dec_meta,
-            {"name": payload_spec["name"], "version": payload_spec["version"]},
+            {
+                "name": payload_spec["name"],
+                "version": payload_spec["version"],
+                "message": hex_enc,
+            },
         )
 
     def test_hex_encode_decode_0(self):
@@ -615,7 +635,11 @@ class TestEncodeDecode(TestCase):
         self.assertDict(dec, decoded)
         self.assertDict(
             dec_meta,
-            {"name": payload_spec["name"], "version": payload_spec["version"]},
+            {
+                "name": payload_spec["name"],
+                "version": payload_spec["version"],
+                "message": enc,
+            },
         )
 
     def test_encode_decode_0(self):
@@ -644,6 +668,7 @@ class TestEncodeDecode(TestCase):
             "date": 0.98,
         }
         enc = spos.encode(payload_data, payload_spec, "bytes")
+        hex_enc = spos.encode(payload_data, payload_spec, "hex")
         self.assertEqual(enc, encoded)
         dec = spos.decode(encoded, payload_spec)
         dec, dec_meta = dec["body"], dec["meta"]
@@ -653,6 +678,7 @@ class TestEncodeDecode(TestCase):
             {
                 "name": payload_spec["name"],
                 "version": payload_spec["version"],
+                "message": hex_enc,
                 "crc8": True,
             },
         )
@@ -728,13 +754,18 @@ class TestEncodeDecode(TestCase):
             ],
         }
         enc = spos.encode(payload_data, payload_spec)
+        hex_enc = spos.encode(payload_data, payload_spec, "hex")
         dec = spos.decode(enc, payload_spec)
         dec, dec_meta = dec["body"], dec["meta"]
         payload_data["bird sightings"] = "Condor"
         self.assertDict(dec, payload_data)
         self.assertDict(
             dec_meta,
-            {"name": payload_spec["name"], "version": payload_spec["version"]},
+            {
+                "name": payload_spec["name"],
+                "version": payload_spec["version"],
+                "message": hex_enc,
+            },
         )
 
     def test_decode_unknown_message_error(self):
@@ -763,6 +794,7 @@ class TestEncodeDecode(TestCase):
             "body": [],
         }
         enc = spos.encode({}, payload_spec)
+        hex_enc = spos.encode({}, payload_spec, "hex")
         dec = spos.decode(enc, payload_spec)
         dec, dec_meta = dec["body"], dec["meta"]
         self.assertDict(dec, {})
@@ -771,6 +803,7 @@ class TestEncodeDecode(TestCase):
             {
                 "name": payload_spec["name"],
                 "version": payload_spec["version"],
+                "message": hex_enc,
                 "crc8": True,
             },
         )
@@ -824,6 +857,7 @@ class TestDecodeFromSpecs(TestCase):
     def test_decode_from_specs(self):
         t = {"sensor x": False, "sensor y": 19}
         enc = spos.bin_encode(t, self.payload_spec_0)
+        hex_enc = spos.encode(t, self.payload_spec_0, "hex")
         dec = spos.decode_from_specs(enc, self.specs)
         dec, dec_meta = dec["body"], dec["meta"]
         self.assertDict(dec, t)
@@ -832,11 +866,13 @@ class TestDecodeFromSpecs(TestCase):
             {
                 "name": self.payload_spec_0["name"],
                 "version": self.payload_spec_0["version"],
+                "message": hex_enc,
             },
         )
 
         t = {"sensor a": 0.4, "sensor b": 500}
         enc = spos.bin_encode(t, self.payload_spec_1)
+        hex_enc = spos.encode(t, self.payload_spec_1, "hex")
         dec = spos.decode_from_specs(enc, self.specs)
         dec, dec_meta = dec["body"], dec["meta"]
         self.assertDict(dec, t)
@@ -845,6 +881,7 @@ class TestDecodeFromSpecs(TestCase):
             {
                 "name": self.payload_spec_1["name"],
                 "version": self.payload_spec_1["version"],
+                "message": hex_enc,
             },
         )
 
