@@ -31,8 +31,8 @@ def read_and_close_json(buf):
     return d
 
 
-def _encode(input, output, payload_spec, format):
-    payload_data = read_and_close_json(input)
+def _encode(_input, output, payload_spec, format):
+    payload_data = read_and_close_json(_input)
     message = encode(payload_data, payload_spec, format)
     message = (
         message if format == "bytes" else bytes(message, encoding="ascii")
@@ -44,12 +44,12 @@ def _encode(input, output, payload_spec, format):
     output.close()
 
 
-def _decode(input, output, payload_specs, format, show_meta):
-    if hasattr(input, "name") and input.name == "<stdin>":
+def _decode(_input, output, payload_specs, format, show_meta):
+    if hasattr(_input, "name") and _input.name == "<stdin>":
         message = sys.stdin.buffer.read()
     else:
-        message = input.read()
-        input.close()
+        message = _input.read()
+        _input.close()
 
     if format != "bytes":
         message = message.decode("ascii")
@@ -162,21 +162,22 @@ def main(args):
         message, payload_data = random_payload(
             payload_specs[0], output=args.format
         )
+
         if args.random_input:
             sys.stdout.write(json.dumps(payload_data, indent=2))
             return 0
+
+        if args.decode:
+            message = (
+                message
+                if isinstance(message, bytes)
+                else bytes(message, encoding="ascii")
+            )
+            args.input = io.BytesIO(message)
         else:
-            if args.decode:
-                message = (
-                    message
-                    if isinstance(message, bytes)
-                    else bytes(message, encoding="ascii")
-                )
-                args.input = io.BytesIO(message)
-            else:
-                args.input = io.BytesIO(
-                    bytes(json.dumps(payload_data), encoding="ascii")
-                )
+            args.input = io.BytesIO(
+                bytes(json.dumps(payload_data), encoding="ascii")
+            )
 
     if args.decode:
         _decode(args.input, args.output, payload_specs, args.format, args.meta)
