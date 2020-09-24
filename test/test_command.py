@@ -173,3 +173,7 @@ class TestCommand(TestCase):
         with self.assertRaises(SystemExit):
             args = command.parse(["-p"] + list(self.test_specs.values()))
             command.main(args)
+
+    def test_payload_stats(self):
+        args = command.parse(["-s", "-p"] + list(self.test_specs.values()))
+        command.main(args)

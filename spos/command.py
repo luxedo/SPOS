@@ -21,7 +21,7 @@ import random
 import re
 import sys
 
-from . import encode, decode, decode_from_specs, __version__
+from . import encode, decode, decode_from_specs, stats, __version__
 from .random import random_payload
 
 
@@ -122,6 +122,12 @@ def parse(argv=None):
         help="Outputs the metadata when decoding",
     )
     parser.add_argument(
+        "-s",
+        "--stats",
+        action="store_true",
+        help="Returns payload spec statistics",
+    )
+    parser.add_argument(
         "-i",
         "--input",
         nargs="?",
@@ -153,6 +159,12 @@ def main(args):
         read_and_close_json(payload_spec)
         for payload_spec in args.payload_specs
     ]
+
+    if args.stats:
+        sys.stdout.write(
+            json.dumps([stats(ps) for ps in payload_specs], indent=2) + "\n"
+        )
+        return 0
 
     if args.random or args.random_input:
         args.input.detach()

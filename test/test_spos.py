@@ -905,3 +905,75 @@ class TestDecodeFromSpecs(TestCase):
         enc = spos.bin_encode(t, self.payload_spec_0)
         with self.assertRaises(spos.SpecsVersionError):
             spos.decode_from_specs(enc, self.specs)
+
+
+class TestStats(TestCase):
+    def test_stats(self):
+        payload_spec = {
+            "name": "spec payload",
+            "version": 5,
+            "meta": {"encode_version": True, "version_bits": 10, "crc8": True},
+            "body": [
+                {"key": "pad", "type": "pad", "bits": 5},
+                {
+                    "key": "msg_version",
+                    "type": "integer",
+                    "value": 2,
+                    "bits": 6,
+                },
+                {"key": "sent_yesterday", "type": "boolean"},
+                {
+                    "key": "rpi_temperature",
+                    "type": "steps",
+                    "steps": [30, 50, 75],
+                    "steps_names": ["T<30", "30<T<50", "50<T<75", "T>75"],
+                },
+                {
+                    "key": "voltage",
+                    "type": "float",
+                    "bits": 6,
+                    "lower": 10,
+                    "upper": 13,
+                },
+                {
+                    "key": "temperature",
+                    "type": "float",
+                    "bits": 6,
+                    "lower": 5,
+                    "upper": 50,
+                },
+                {
+                    "key": "conf_arm",
+                    "type": "array",
+                    "bits": 3,
+                    "blocks": {"key": "conf", "type": "float", "bits": 5},
+                },
+                {
+                    "key": "conf_eri",
+                    "type": "array",
+                    "bits": 3,
+                    "blocks": {"key": "conf", "type": "float", "bits": 5},
+                },
+                {
+                    "key": "conf_cos",
+                    "type": "array",
+                    "bits": 3,
+                    "blocks": {"key": "conf", "type": "float", "bits": 5},
+                },
+                {
+                    "key": "conf_fru",
+                    "type": "array",
+                    "bits": 3,
+                    "blocks": {"key": "conf", "type": "float", "bits": 5},
+                },
+                {
+                    "key": "conf_sac",
+                    "type": "array",
+                    "bits": 3,
+                    "blocks": {"key": "conf", "type": "float", "bits": 5},
+                },
+            ],
+        }
+        st = spos.stats(payload_spec)
+        self.assertEqual(st["max_bits"], 234)
+        self.assertEqual(st["min_bits"], 59)

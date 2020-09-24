@@ -282,6 +282,7 @@ def decode_from_specs(message, specs):
 
     Args:
         message (bin | hex | bytes): Message.
+        specs (list): List of Payload specifications.
 
     Returns:
         body (dict): Payload data.
@@ -294,3 +295,31 @@ def decode_from_specs(message, specs):
         except VersionError:
             pass
     raise PayloadSpecError("Message does not match any version in 'specs'.")
+
+
+def stats(payload_spec):
+    """
+    Calculates statistics for given payload specification
+
+    Args:
+        payload_spec (dict): Payload specification.
+
+    Returns:
+        stats (dict): Computed statistics.
+    """
+    utils.validate_payload_spec(payload_spec)
+    version_block, header_block, header_static = _build_meta_block(
+        payload_spec
+    )
+    body = payload_spec.get("body", [])
+    body_block = Block({"key": "body", "type": "object", "blocklist": body})
+    st = [version_block.stats()] if version_block is not None else []
+    st += [header_block.stats(), body_block.stats()]
+    st += [{"key": "crc8", "type": "crc8", "max_bits": 8, "min_bits": 8}]
+    return {
+        "name": payload_spec["name"],
+        "version": payload_spec["version"],
+        "max_bits": sum([s["max_bits"] for s in st]),
+        "min_bits": sum([s["min_bits"] for s in st]),
+        "message_sections": st,
+    }

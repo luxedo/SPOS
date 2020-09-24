@@ -166,6 +166,37 @@ class BlockBase(abc.ABC):
         """
         return self.bits
 
+    @property
+    def max_bits(self):
+        """
+        Returns the max number of bits
+        """
+        return self._max_bits()
+
+    def _max_bits(self):
+        return self.bits
+
+    @property
+    def min_bits(self):
+        """
+        Returns the min number of bits
+        """
+        return self._min_bits()
+
+    def _min_bits(self):
+        return self.bits
+
+    def stats(self):
+        """
+        Returns block statistics
+        """
+        return {
+            "key": self.key,
+            "type": self.type,
+            "max_bits": self.max_bits,
+            "min_bits": self.min_bits,
+        }
+
 
 # ---------------------------------------------------------------------
 # METHOD DECORATORS
@@ -317,6 +348,9 @@ class ArrayBlock(BlockBase):
         length, message = self.length_block.consume(message)
         return self.bits + length * self.blocks.accumulate_bits(message)
 
+    def _max_bits(self):
+        return self.bits + self.max_length * self.blocks.max_bits
+
 
 class ObjectBlock(BlockBase):
     required = {"blocklist": "blocklist"}
@@ -372,6 +406,21 @@ class ObjectBlock(BlockBase):
             _, message = block.consume(message)
             acc += bits
         return acc
+
+    def _max_bits(self):
+        return sum([block.max_bits for block in self.blocklist])
+
+    def _min_bits(self):
+        return sum([block.min_bits for block in self.blocklist])
+
+    def stats(self):
+        return {
+            "key": self.key,
+            "type": self.type,
+            "max_bits": self.max_bits,
+            "min_bits": self.min_bits,
+            "blocklist": [block.stats() for block in self.blocklist],
+        }
 
 
 class StringBlock(BlockBase):
