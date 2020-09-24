@@ -15,8 +15,10 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 import crc8
 
+# Type Hints
+Message = str
 
-def create_crc8(message):
+def create_crc8(message: Message) -> str:
     """
     Creates an 8-bit CRC.
 
@@ -30,15 +32,15 @@ def create_crc8(message):
         _bytes = len(message[2:]) // 4
         message = "0x" + "{:x}".format(int(message, 2)).rjust(_bytes, "0")
     pad = "0" * (len(message[2:]) % 2)
-    message = bytes.fromhex(pad + message[2:])
+    message_bytes = bytes.fromhex(pad + message[2:])
     hasher = crc8.crc8()
-    hasher.update(message)
+    hasher.update(message_bytes)
     crc = bin(int(hasher.hexdigest(), 16))
     crc = "0b" + "{0:0>8}".format(crc[2:])
     return crc
 
 
-def check_crc8(message):
+def check_crc8(message: Message) -> bool:
     """
     Checks if the message is valid. The last byte of the message must
     be the CRC8 hash of the previous data.

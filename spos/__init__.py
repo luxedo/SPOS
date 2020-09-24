@@ -25,10 +25,16 @@ from .exceptions import (
 from .checks import create_crc8, check_crc8
 from . import utils
 
+from typing import Any, Dict, List, Tuple, Union
+
+# Type Hints
+Message = Union[str, bytes]
+PayloadSpec = Dict[str, Any]
+
 __version__ = "1.2.4-b"
 
 
-def encode_block(value, block_spec):
+def encode_block(value, block_spec: PayloadSpec) -> str:
     """
     Encodes value according to block specifications.
 
@@ -42,12 +48,12 @@ def encode_block(value, block_spec):
     return Block(block_spec).bin_encode(value)
 
 
-def decode_block(message, block_spec):
+def decode_block(message, block_spec: PayloadSpec) -> PayloadSpec:
     """
-    Encodes value according to block specifications.
+    Decodes value according to block specifications.
 
     Args:
-        value: The value to be encoded
+        message: The value to be encoded
         block (dict): Block specifications
 
     Returns:
@@ -56,7 +62,7 @@ def decode_block(message, block_spec):
     return Block(block_spec).bin_decode(message)
 
 
-def _build_meta_block(payload_spec):
+def _build_meta_block(payload_spec: PayloadSpec) -> Tuple[Block, Block, PayloadSpec]:
     """
     Performs validations in the meta specification and returns o
 
@@ -94,7 +100,7 @@ def _build_meta_block(payload_spec):
     return version_block, header_block, header_static
 
 
-def bin_encode(payload_data, payload_spec):
+def bin_encode(payload_data: PayloadSpec, payload_spec: PayloadSpec) -> str:
     """
     Encodes a message from payload_data according to payload_spec.
     Returns the message as a binary string.
@@ -107,7 +113,7 @@ def bin_encode(payload_data, payload_spec):
         message (str): Binary string of the message.
     """
     utils.validate_payload_spec(payload_spec)
-    message = "0b"
+    message: str = "0b"
 
     version_block, header_block, header_static = _build_meta_block(
         payload_spec
@@ -131,7 +137,7 @@ def bin_encode(payload_data, payload_spec):
     return message
 
 
-def bin_decode(message, payload_spec):
+def bin_decode(message: str, payload_spec: PayloadSpec) -> PayloadSpec:
     """
     Decodes a binary message according to payload_spec.
 
@@ -179,7 +185,7 @@ def bin_decode(message, payload_spec):
     return {"meta": meta, "body": body}
 
 
-def encode(payload_data, payload_spec, output="bin"):
+def encode(payload_data: PayloadSpec, payload_spec: PayloadSpec, output: str="bin") -> Message:
     """
     Encodes a message from payload_data according to payload_spec.
 
@@ -189,20 +195,20 @@ def encode(payload_data, payload_spec, output="bin"):
         output (str): Return format (bin, hex or bytes). default: "bin".
 
     Returns:
-        message (bytes): Message.
+        message (str | bytes): Message.
     """
-    message = bin_encode(payload_data, payload_spec)
+    message: str = bin_encode(payload_data, payload_spec)
     if output in ("hex", "bytes"):
         message = _bin_to_hex(message)
-        message = (
+        message_final: Message = (
             message
             if output == "hex"
             else bytes(bytearray.fromhex(message[2:]))
         )
-    return message
+    return message_final
 
 
-def _bin_to_hex(bin_message):
+def _bin_to_hex(bin_message: str) -> str:
     """
     Converts message from bin to hex
 
@@ -220,7 +226,7 @@ def _bin_to_hex(bin_message):
     )
 
 
-def _hex_to_bin(hex_message):
+def _hex_to_bin(hex_message: str) -> str:
     """
     Converts message from hex to bin
 
@@ -234,7 +240,7 @@ def _hex_to_bin(hex_message):
     return "0b" + bin_message.zfill(bits)
 
 
-def decode(message, payload_spec):
+def decode(message: Message, payload_spec: PayloadSpec) -> PayloadSpec:
     """
     Decodes a message according to payload_spec.
 
@@ -265,9 +271,9 @@ def decode(message, payload_spec):
     return bin_decode(message, payload_spec)
 
 
-def decode_from_specs(message, specs):
+def decode_from_specs(message: Message, specs: List[PayloadSpec]) -> PayloadSpec:
     """
-    Decodes message from an avaliable pool of payload specificaions by
+    Decodes message from an available pool of payload specifications by
     matching message version with specification version.
 
     All the payload specifications must have `meta.encode_version` set
@@ -282,7 +288,7 @@ def decode_from_specs(message, specs):
 
     Args:
         message (bin | hex | bytes): Message.
-
+        specs
     Returns:
         body (dict): Payload data.
         meta (dict): Payload metadata.

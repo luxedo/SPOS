@@ -7,7 +7,10 @@ from . import utils, encode
 from .blocks import Block
 
 
-def seed(a=None, version=2):
+# Type Hints
+PayloadSpec = Dict[str, Any]
+
+def seed(a: Any = None, version: int = 2) -> None:
     """
     Alias for random.seed
     """
@@ -65,7 +68,7 @@ class RandomBlock(Block):
                 )
         return instance
 
-    def random_message(self):
+    def random_message(self) -> str:
         """
         Creates a random message
         """
@@ -75,7 +78,7 @@ class RandomBlock(Block):
             else self.cache_message
         )
 
-    def _random_message(self):
+    def _random_message(self) -> str:
         return utils.random_bits(self.bits)
 
     def random_value(self):
@@ -154,7 +157,7 @@ def block_random_message(block_spec):
     return RandomBlock(block_spec).random_message()
 
 
-def random_payload(payload_spec, output="bin"):
+def random_payload(payload_spec: PayloadSpec, output: str = "bin") -> Tuple[Message, ]:
     """
     Builds a random message conforming to `payload_spec`.
 

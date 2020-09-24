@@ -24,6 +24,10 @@ import sys
 from . import encode, decode, decode_from_specs, __version__
 from .random import random_payload
 
+# Type Hints
+PayloadSpec = Dict[str, Any]
+Message = Union[str, bytes]
+
 
 def read_and_close_json(buf):
     d = json.load(buf)
@@ -31,9 +35,9 @@ def read_and_close_json(buf):
     return d
 
 
-def _encode(_input, output, payload_spec, format):
+def _encode(_input, output, payload_spec: PayloadSpec, format: str) -> None:
     payload_data = read_and_close_json(_input)
-    message = encode(payload_data, payload_spec, format)
+    message: Message = encode(payload_data, payload_spec, format)
     message = (
         message if format == "bytes" else bytes(message, encoding="ascii")
     )
@@ -44,7 +48,7 @@ def _encode(_input, output, payload_spec, format):
     output.close()
 
 
-def _decode(_input, output, payload_specs, format, show_meta):
+def _decode(_input, output, payload_specs: PayloadSpec, format: str, show_meta: bool) -> None:
     if hasattr(_input, "name") and _input.name == "<stdin>":
         message = sys.stdin.buffer.read()
     else:

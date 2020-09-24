@@ -17,10 +17,17 @@ import collections
 import copy
 import random
 
-from .exceptions import SpecsVersionError
+try:
+    from .exceptions import SpecsVersionError
+except Exception:
+    from exceptions import SpecsVersionError
 
+from typing import Dict, List
 
-def truncate_bits(bit_str, bits):
+# Type Hints
+Blocklist = Dict[str, Any]
+
+def truncate_bits(bit_str: str, bits: int) -> str:
     """
     Truncates the `bit_str` to up to `bits`.
     Args:
@@ -33,7 +40,7 @@ def truncate_bits(bit_str, bits):
     return "0b" + "0" * (bits - len(bit_str) + 2) + bit_str[2 : bits + 2]
 
 
-def random_bits(n):
+def random_bits(n: int) -> str:
     """
     Returns a binary string with `n` bits.
 
@@ -46,7 +53,7 @@ def random_bits(n):
     return f"0b{''.join([str(random.randint(0, 1)) for _ in range(n)])}"
 
 
-def validate_payload_spec(payload_spec):
+def validate_payload_spec(payload_spec: Blocklist) -> None:
     """
     Checks payload_spec for valid keys and values. Does not validates
     blocks.
@@ -118,12 +125,12 @@ def validate_payload_spec(payload_spec):
         )
 
 
-def duplicate_keys(blocklist):
+def duplicate_keys(blocklist: Blocklist) -> List[str]:
     """
     Checks if `blocklist` has duplicate keys.
 
     Args:
-        blocklist
+        blocklist (dict):
 
     Returns:
         dup_keys (list): List of duplicate keys.
@@ -134,13 +141,13 @@ def duplicate_keys(blocklist):
     ]
 
 
-def flattened_keys(blocklist):
+def flattened_keys(blocklist: Blocklist) -> List[str]:
     """
     Flatten 'key' values in blocklist to dot notation. Eg:
     block["key1"]["key2"] => block["key1.key2"]
 
     Args:
-        blocklist
+        blocklist (dict):
 
     Returns
         keys (list): List of keys.
@@ -159,7 +166,7 @@ def flattened_keys(blocklist):
     return keys
 
 
-def nest_keys(obj):
+def nest_keys(obj: Blocklist) -> Blocklist:
     """
     Nests keys in obj from dot notation. Eg:
     obj["key1.key2"] => obj["key1"]["key2"]
@@ -190,7 +197,7 @@ def nest_keys(obj):
     return new_obj
 
 
-def merge_dicts(dict1, dict2):
+def merge_dicts(dict1: Blocklist, dict2: Blocklist) -> Blocklist:
     """
     Merges dictionaries including nested values.
 
@@ -210,7 +217,7 @@ def merge_dicts(dict1, dict2):
     return merged_dict
 
 
-def validate_header(header_bl):
+def validate_header(header_bl: List[Blocklist]) -> None:
     """
     Run checks for static value in the header block.
 
@@ -234,7 +241,7 @@ def validate_header(header_bl):
             )
 
 
-def validate_specs(specs, match_versions=False):
+def validate_specs(specs: List[Blocklist], match_versions: bool = False) -> None:
     """
     Validates an array of specs.
 
@@ -265,7 +272,7 @@ def validate_specs(specs, match_versions=False):
             versions.append(payload_spec["version"])
 
 
-def remove_null_values(d):
+def remove_null_values(d: Blocklist) -> Blocklist:
     """
     Removes None from dictionary `d` recursively.
 
