@@ -21,8 +21,8 @@ import random
 import re
 import sys
 
-from . import encode, decode, decode_from_specs, __version__
-from .random import random_payload
+from . import encode, decode, decode_from_specs, __version__        # type: ignore
+from .random import random_payload                                  # type: ignore
 
 # Type Hints
 PayloadSpec = Dict[str, Any]

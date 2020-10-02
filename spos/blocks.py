@@ -23,8 +23,8 @@ import math
 import re
 import warnings
 
-from .utils import truncate_bits, nest_keys
-from .exceptions import StaticValueMismatchWarning
+from .utils import truncate_bits, nest_keys                     # type: ignore
+from .exceptions import StaticValueMismatchWarning              # type: ignore
 
 from typing import Any, Dict, Union, Optional, Tuple
 

@@ -15,15 +15,15 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 import re
 
-from .blocks import Block
-from .exceptions import (
+from .blocks import Block                       # type: ignore
+from .exceptions import (                       # type: ignore
     VersionError,
     PayloadSpecError,
     SpecsVersionError,
     StaticValueMismatchWarning,
 )
-from .checks import create_crc8, check_crc8
-from . import utils
+from .checks import create_crc8, check_crc8     # type: ignore
+from . import utils                             # type: ignore
 
 from typing import Any, Dict, List, Tuple, Union
 

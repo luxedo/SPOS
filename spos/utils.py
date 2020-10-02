@@ -17,12 +17,9 @@ import collections
 import copy
 import random
 
-try:
-    from .exceptions import SpecsVersionError
-except Exception:
-    from exceptions import SpecsVersionError
+from .exceptions import SpecsVersionError       # type: ignore
 
-from typing import Dict, List
+from typing import Any, Dict, List
 
 # Type Hints
 Blocklist = Dict[str, Any]
@@ -141,7 +138,7 @@ def duplicate_keys(blocklist: Blocklist) -> List[str]:
     ]
 
 
-def flattened_keys(blocklist: Blocklist) -> List[str]:
+def flattened_keys(blocklist: Blocklist) -> List[Any]:
     """
     Flatten 'key' values in blocklist to dot notation. Eg:
     block["key1"]["key2"] => block["key1.key2"]
@@ -152,7 +149,7 @@ def flattened_keys(blocklist: Blocklist) -> List[str]:
     Returns
         keys (list): List of keys.
     """
-    keys = []
+    keys: List[Any] = []
     for block_spec in blocklist:
         if block_spec.get("type") == "object":
             nested = copy.deepcopy(block_spec.get("blocklist", []))
@@ -177,7 +174,7 @@ def nest_keys(obj: Blocklist) -> Blocklist:
     Returns
         obj_nested (dict)
     """
-    new_obj = {}
+    new_obj: Blocklist = {}
     for key, value in obj.items():
         if isinstance(value, dict):
             value = nest_keys(value)

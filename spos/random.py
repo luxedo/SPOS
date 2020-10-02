@@ -2,9 +2,11 @@
 Generates a payload based on a payload spec
 """
 import random
+from typing import Any, Dict, Tuple
 
-from . import utils, encode
-from .blocks import Block
+
+from . import utils, encode     # type: ignore
+from .blocks import Block       # type: ignore
 
 
 # Type Hints
@@ -157,7 +159,7 @@ def block_random_message(block_spec):
     return RandomBlock(block_spec).random_message()
 
 
-def random_payload(payload_spec: PayloadSpec, output: str = "bin") -> Tuple[Message, ]:
+def random_payload(payload_spec: PayloadSpec, output: str = "bin") -> Tuple[Message, Message]:
     """
     Builds a random message conforming to `payload_spec`.
 
