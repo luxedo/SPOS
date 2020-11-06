@@ -31,6 +31,7 @@ import sys
 
 from . import encode, decode, decode_from_specs, stats, __version__
 from .random import random_payload
+from .typing import List, PayloadSpec, Message
 
 
 def read_and_close_json(buf):
@@ -39,10 +40,14 @@ def read_and_close_json(buf):
     return d
 
 
-def _encode(_input, output, payload_spec, fmt):
+def _encode(_input, output, payload_spec: PayloadSpec, fmt: str) -> None:
     payload_data = read_and_close_json(_input)
-    message = encode(payload_data, payload_spec, fmt)
-    message = message if fmt == "bytes" else bytes(message, encoding="ascii")
+    message: Message = encode(payload_data, payload_spec, fmt)
+    message = (
+        message
+        if isinstance(message, bytes)
+        else bytes(message, encoding="ascii")
+    )
     if hasattr(output, "name") and output.name == "<stdout>":
         sys.stdout.buffer.write(message)
     else:
@@ -50,14 +55,16 @@ def _encode(_input, output, payload_spec, fmt):
     output.close()
 
 
-def _decode(_input, output, payload_specs, fmt, show_meta):
+def _decode(
+    _input, output, payload_specs: List[PayloadSpec], fmt: str, show_meta: bool
+) -> None:
     if hasattr(_input, "name") and _input.name == "<stdin>":
-        message = sys.stdin.buffer.read()
+        message: Message = sys.stdin.buffer.read()
     else:
         message = _input.read()
         _input.close()
 
-    if fmt != "bytes":
+    if fmt != "bytes" and isinstance(message, bytes):
         message = message.decode("ascii")
         if fmt == "hex":
             message = (

@@ -28,8 +28,10 @@ import random
 
 from .exceptions import SpecsVersionError
 
+from .typing import Any, Dict, List, Blocklist, PayloadSpec
 
-def truncate_bits(bit_str, bits):
+
+def truncate_bits(bit_str: str, bits: int) -> str:
     """
     Truncates the `bit_str` to up to `bits`.
     Args:
@@ -42,7 +44,7 @@ def truncate_bits(bit_str, bits):
     return "0b" + "0" * (bits - len(bit_str) + 2) + bit_str[2 : bits + 2]
 
 
-def random_bits(n):
+def random_bits(n: int) -> str:
     """
     Returns a binary string with `n` bits.
 
@@ -55,7 +57,7 @@ def random_bits(n):
     return f"0b{''.join([str(random.randint(0, 1)) for _ in range(n)])}"
 
 
-def validate_payload_spec(payload_spec):
+def validate_payload_spec(payload_spec: PayloadSpec) -> None:
     """
     Checks payload_spec for valid keys and values. Does not validates
     blocks.
@@ -127,12 +129,12 @@ def validate_payload_spec(payload_spec):
         )
 
 
-def duplicate_keys(blocklist):
+def duplicate_keys(blocklist: Blocklist) -> List[str]:
     """
     Checks if `blocklist` has duplicate keys.
 
     Args:
-        blocklist
+        blocklist (dict):
 
     Returns:
         dup_keys (list): List of duplicate keys.
@@ -143,18 +145,18 @@ def duplicate_keys(blocklist):
     ]
 
 
-def flattened_keys(blocklist):
+def flattened_keys(blocklist: Blocklist) -> List[Any]:
     """
     Flatten 'key' values in blocklist to dot notation. Eg:
     block["key1"]["key2"] => block["key1.key2"]
 
     Args:
-        blocklist
+        blocklist (dict):
 
     Returns
         keys (list): List of keys.
     """
-    keys = []
+    keys: List[Any] = []
     for block_spec in blocklist:
         if block_spec.get("type") == "object":
             nested = copy.deepcopy(block_spec.get("blocklist", []))
@@ -168,7 +170,7 @@ def flattened_keys(blocklist):
     return keys
 
 
-def nest_keys(obj):
+def nest_keys(obj: Dict) -> Dict:
     """
     Nests keys in obj from dot notation. Eg:
     obj["key1.key2"] => obj["key1"]["key2"]
@@ -179,7 +181,7 @@ def nest_keys(obj):
     Returns
         obj_nested (dict)
     """
-    new_obj = {}
+    new_obj: Dict = {}
     for key, value in obj.items():
         if isinstance(value, dict):
             value = nest_keys(value)
@@ -199,7 +201,7 @@ def nest_keys(obj):
     return new_obj
 
 
-def merge_dicts(dict1, dict2):
+def merge_dicts(dict1: Dict, dict2: Dict) -> Dict:
     """
     Merges dictionaries including nested values.
 
@@ -219,7 +221,7 @@ def merge_dicts(dict1, dict2):
     return merged_dict
 
 
-def validate_header(header_bl):
+def validate_header(header_bl: Blocklist) -> None:
     """
     Run checks for static value in the header block.
 
@@ -243,7 +245,7 @@ def validate_header(header_bl):
             )
 
 
-def validate_specs(specs, match_versions=False):
+def validate_specs(specs: Blocklist, match_versions: bool = False) -> None:
     """
     Validates an array of specs.
 
@@ -274,7 +276,7 @@ def validate_specs(specs, match_versions=False):
             versions.append(payload_spec["version"])
 
 
-def remove_null_values(d):
+def remove_null_values(d: Dict) -> Dict:
     """
     Removes None from dictionary `d` recursively.
 

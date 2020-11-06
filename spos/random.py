@@ -26,126 +26,96 @@ import random
 
 from . import utils, encode
 from .blocks import Block
+from .typing import Any, Dict, Tuple, PayloadSpec, Message
 
 
-def seed(a=None, version=2):
+def seed(a: Any = None, version: int = 2) -> None:
     """
     Alias for random.seed
     """
     random.seed(a, version)
 
 
-class RandomBlock(Block):
-    def __new__(cls, *args, **kwargs):
-        random_encoders = {
-            "array": cls.array_random_message,
-            "object": cls.object_random_message,
-            "steps": cls.steps_random_message,
-            "categories": cls.categories_random_message,
+class RandomBlock:
+    def __init__(self, block_spec):
+        self.block = Block(block_spec)
+        self.random_encoders = {
+            "array": self.array_random_message,
+            "object": self.object_random_message,
+            "steps": self.steps_random_message,
+            "categories": self.categories_random_message,
         }
-        random_decoders = {
-            "pad": cls.pad_random_value,
-            "object": cls.object_random_value,
-            "steps": cls.steps_random_value,
-            "categories": cls.categories_random_value,
+        self.random_decoders = {
+            "pad": self.pad_random_value,
+            "object": self.object_random_value,
+            "steps": self.steps_random_value,
+            "categories": self.categories_random_value,
         }
-        instance = super().__new__(cls, *args, **kwargs)
-        setattr(
-            instance,
-            "random_message",
-            cls.random_message.__get__(instance, instance.__class__),
-        )
-        setattr(
-            instance,
-            "_random_message",
-            cls._random_message.__get__(instance, instance.__class__),
-        )
-        setattr(
-            instance,
-            "random_value",
-            cls.random_value.__get__(instance, instance.__class__),
-        )
-        setattr(
-            instance,
-            "_random_value",
-            cls._random_value.__get__(instance, instance.__class__),
-        )
-        for name, fn in random_encoders.items():
-            if instance.type == name:
-                setattr(
-                    instance,
-                    "_random_message",
-                    fn.__get__(instance, instance.__class__),
-                )
-        for name, fn in random_decoders.items():
-            if instance.type == name:
-                setattr(
-                    instance,
-                    "_random_value",
-                    fn.__get__(instance, instance.__class__),
-                )
-        return instance
 
-    def random_message(self):
+    def random_message(self) -> str:
         """
         Creates a random message
         """
-        return (
-            self._random_message()
-            if not self.cache_message
-            else self.cache_message
-        )
+        if self.block.cache_message:
+            return self.block.cache_message
 
-    def _random_message(self):
-        return utils.random_bits(self.bits)
+        if self.block.type in self.random_encoders:
+            return self.random_encoders[self.block.type]()
+
+        return utils.random_bits(self.block.bits)
 
     def random_value(self):
         """
         Creates a random value
         """
-        return (
-            self._random_value() if not self.cache_value else self.cache_value
-        )
+        if self.block.cache_value:
+            return self.block.cache_value
 
-    def _random_value(self):
-        return self.bin_decode(self.random_message())
+        if self.block.type in self.random_decoders:
+            return self.random_decoders[self.block.type]()
+
+        return self.block.bin_decode(self.random_message())
 
     def pad_random_value(self):
-        return self._bin_encode(None)
+        return None
 
-    def array_random_message(self):
-        length = random.randint(0, self.max_length)
-        len_message = self.length_block.bin_encode(length)
-        random_blocks = RandomBlock(self.blocks.block_spec)
+    def array_random_message(self) -> str:
+        length = random.randint(0, self.block.max_length)
+        len_message = self.block.length_block.bin_encode(length)
+        random_blocks = RandomBlock(self.block.blocks.block_spec)
         return f"{len_message}{''.join([random_blocks.random_message()[2:] for _ in range(length)])}"
 
-    def object_random_message(self):
+    def object_random_message(self) -> str:
         message = "0b"
-        for block in self.blocklist:
+        for block in self.block.blocklist:
             random_block = RandomBlock(block.block_spec)
             message += random_block.random_message()[2:]
         return message
 
     def object_random_value(self):
         obj = {}
-        for block in self.blocklist:
+        for block in self.block.blocklist:
             random_block = RandomBlock(block.block_spec)
             obj[block.key] = random_block.random_value()
         obj = utils.nest_keys(obj)
         return obj
 
     def steps_random_value(self):
-        steps = self.steps + [self.steps[0] - 1]
+        steps = self.block.steps + [self.block.steps[0] - 1]
         return random.choice(steps)
 
-    def steps_random_message(self):
-        return self.bin_encode(self.random_value())
+    def steps_random_message(self) -> str:
+        return self.block.bin_encode(self.random_value())
 
     def categories_random_value(self):
-        return random.choice(self.categories[:-1])
+        return random.choice(self.block.categories[:-1])
 
-    def categories_random_message(self):
-        return self.bin_encode(self.random_value())
+    def categories_random_message(self) -> str:
+        return self.block.bin_encode(self.random_value())
+
+    # Mock methods for linters/mypy
+    def cache_message(self):
+        pass
 
 
 def block_random_value(block_spec):
@@ -175,7 +145,9 @@ def block_random_message(block_spec):
     return RandomBlock(block_spec).random_message()
 
 
-def random_payload(payload_spec, output="bin"):
+def random_payload(
+    payload_spec: PayloadSpec, output: str = "bin"
+) -> Tuple[Message, Dict]:
     """
     Builds a random message conforming to `payload_spec`.
 

@@ -32,6 +32,8 @@ import warnings
 from .utils import truncate_bits, nest_keys
 from .exceptions import StaticValueMismatchWarning
 
+from .typing import Any, Dict, Union, Optional, Tuple, Message
+
 
 # ---------------------------------------------------------------------
 # BLOCK ABC
@@ -52,10 +54,10 @@ class BlockBase(abc.ABC):
 
     """
 
-    required = {}
-    optional = {}
+    required: Dict[str, Any] = {}
+    optional: Dict[str, Any] = {}
 
-    def __init__(self, block_spec):
+    def __init__(self, block_spec) -> None:
         self.block_spec = copy.deepcopy(block_spec)
         self.validate_block_spec_keys()
         self.key = block_spec.get("key")
@@ -81,7 +83,7 @@ class BlockBase(abc.ABC):
         Required method to be implemented for subclasses
         """
 
-    def bin_encode(self, value):
+    def bin_encode(self, value: Any) -> Message:
         """
         Method for value binary encoding
         """
@@ -95,7 +97,7 @@ class BlockBase(abc.ABC):
         Required method to be implemented for subclasses
         """
 
-    def bin_decode(self, message):
+    def bin_decode(self, message: Message) -> Any:
         """
         Method for binary message decoding
         """
@@ -150,7 +152,7 @@ class BlockBase(abc.ABC):
             if key not in all_keys:
                 raise KeyError(f"Unexpected key {key} found in {self}")
 
-    def consume(self, message):
+    def consume(self, message: str) -> Tuple[str, str]:
         """
         Decodes the block data while returning any unused bits.
 
@@ -164,7 +166,7 @@ class BlockBase(abc.ABC):
         value = self.bin_decode(message[: bits + 2])
         return value, "0b" + message[bits + 2 :]
 
-    def accumulate_bits(self, message):
+    def accumulate_bits(self, message: Message) -> int:
         """
         Optional method that should return the number of bits of the
         instance type. This will change only for types that changes
@@ -597,3 +599,13 @@ class Block:
             raise ValueError(
                 f"Block '{block_spec}' has an unknown 'type' {b_type}."
             )
+
+    # Mock methods for linters/mypy
+    def bin_decode(self, message):
+        pass
+
+    def bin_encode(self, value):
+        pass
+
+    def consume(self, message):
+        pass
