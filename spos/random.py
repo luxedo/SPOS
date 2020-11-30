@@ -80,7 +80,7 @@ class RandomBlock:
         return None
 
     def array_random_message(self) -> str:
-        length = random.randint(0, self.block.max_length)
+        length = random.randint(0, self.block.length)
         len_message = self.block.length_block.bin_encode(length)
         random_blocks = RandomBlock(self.block.blocks.block_spec)
         return f"{len_message}{''.join([random_blocks.random_message()[2:] for _ in range(length)])}"

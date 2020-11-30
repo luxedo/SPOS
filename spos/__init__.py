@@ -46,7 +46,7 @@ from .typing import (
 )
 
 
-__version__ = "1.2.4-b"
+__version__ = "1.3.0-b"
 
 
 def encode_block(value, block_spec: PayloadSpec) -> str:

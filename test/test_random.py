@@ -116,7 +116,7 @@ class TestRandomMessageAndValue(TestCase):
         block_spec = {
             "key": "array",
             "type": "array",
-            "bits": 6,
+            "length": 63,
             "blocks": {"key": "float", "type": "float", "bits": 4},
         }
         self.evaluate_message(block_spec)
@@ -131,7 +131,7 @@ class TestRandomMessageAndValue(TestCase):
                 {
                     "key": "array",
                     "type": "array",
-                    "bits": 4,
+                    "length": 15,
                     "blocks": {"key": "integer", "type": "integer", "bits": 6},
                 },
             ],
@@ -185,7 +185,7 @@ class TestRandomMessageAndValue(TestCase):
         block_spec = {
             "key": "array",
             "type": "array",
-            "bits": 6,
+            "length": 63,
             "blocks": {"key": "float", "type": "float", "bits": 4},
         }
         self.evaluate_value(block_spec)
@@ -200,7 +200,7 @@ class TestRandomMessageAndValue(TestCase):
                 {
                     "key": "array",
                     "type": "array",
-                    "bits": 4,
+                    "length": 15,
                     "blocks": {"key": "integer", "type": "integer", "bits": 6},
                 },
             ],
@@ -256,7 +256,7 @@ class TestRandomPayload(TestCase):
                 {
                     "key": "buffer",
                     "type": "array",
-                    "bits": 8,
+                    "length": 255,
                     "blocks": {"key": "buf_val", "type": "integer", "bits": 8},
                 },
                 {"key": "date", "type": "float", "bits": 6},

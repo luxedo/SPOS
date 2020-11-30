@@ -308,7 +308,7 @@ class TestBlock(TestCase):
         block = {
             "key": "integer array",
             "type": "array",
-            "bits": 3,
+            "length": 7,
             "blocks": {"key": "array val", "type": "integer", "bits": 3},
         }
         t = [1, 2, 3, 4]
@@ -320,7 +320,7 @@ class TestBlock(TestCase):
         block = {
             "key": "truncate array",
             "type": "array",
-            "bits": 2,
+            "length": 3,
             "blocks": {"key": "array val", "type": "integer", "bits": 3},
         }
         t = [1, 2, 3, 4, 5]
@@ -333,7 +333,7 @@ class TestBlock(TestCase):
         block = {
             "key": "empty array",
             "type": "array",
-            "bits": 7,
+            "length": 127,
             "blocks": {"key": "array val", "type": "integer", "bits": 3},
         }
         t = []
@@ -345,11 +345,11 @@ class TestBlock(TestCase):
         block = {
             "key": "nested array",
             "type": "array",
-            "bits": 2,
+            "length": 3,
             "blocks": {
                 "key": "array val 1",
                 "type": "array",
-                "bits": 3,
+                "length": 7,
                 "blocks": {"key": "array val 2", "type": "integer", "bits": 3},
             },
         }
@@ -357,6 +357,31 @@ class TestBlock(TestCase):
         a = "0b10010001010011011100101"
         self.assertEqual(spos.encode_block(t, block), a)
         self.assertEqual(spos.decode_block(a, block), t)
+
+    def test_array_fixed(self):
+        block = {
+            "key": "fixed array",
+            "type": "array",
+            "length": 3,
+            "fixed": True,
+            "blocks": {"key": "array val", "type": "integer", "bits": 3},
+        }
+        t = [0, 1, 2]
+        a = "0b000001010"
+        self.assertEqual(spos.encode_block(t, block), a)
+        self.assertEqual(spos.decode_block(a, block), t)
+
+    def test_array_fixed_length_error(self):
+        block = {
+            "key": "nested array",
+            "type": "array",
+            "length": 4,
+            "fixed": True,
+            "blocks": {"key": "array val", "type": "integer", "bits": 3},
+        }
+        t = [0, 1, 2]
+        with self.assertRaises(ValueError):
+            spos.encode_block(t, block)
 
     def test_object_block(self):
         block = {

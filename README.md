@@ -287,16 +287,23 @@ Additional keys:
 
 #### array
 
-An array containing `block` values.
+An array containing `block` values. There are two avaliable modes for
+this type, a fixed length array and a dynamic length array.
 
-The size in bits of this type is between `bits` (0 length) and
-`bits` + `length` \* `blocks` &rarr; `bits` (full array).
+For fixed mode, the array always have `length` \* `blocks` &rarr; `bits`.
+The input array must have `length` items.
+
+The dynamic mode sends the current length of the array in the message,
+so it's size is between ceil(log2(`length`)) `bits` for 0 items in the
+array and ceil(log2(`length`)) + `length` \* `blocks` &rarr; `bits` for
+a full array.
 
 Input: An `array` of values allowed for the defined `block`.
 
 Additional keys:
 
-- `bits` (int): Number of bits to store the maximum length of the array.
+- `length` (int): Maximum length of the array.
+- `fixed`  (bool): Fixed length array. Default: false.
 - `blocks` (block): The `block` specification of the data in the array.
 
 #### object

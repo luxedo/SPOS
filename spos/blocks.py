@@ -326,26 +326,36 @@ class PadBlock(BlockBase):
 
 
 class ArrayBlock(BlockBase):
-    required = {"bits": int, "blocks": "block"}
+    required = {"length": int, "blocks": "block"}
+    optional = {"fixed": {"type": (bool), "default": False}}
     blocks = None
 
     def initialize_block(self):
-        self.max_length = 2 ** self.bits - 1
+        self.bits = math.ceil(math.log(self.length + 1, 2))
         self.length_block = IntegerBlock({"bits": self.bits, "offset": 0})
 
     @validate_encode_input_types(list, tuple, set)
     def _bin_encode(self, value):
-        message = ""
-        length = min([len(value), self.max_length])
-        message += self.length_block.bin_encode(length)
+        message = "0b"
+        length = min([len(value), self.length])
+        if self.fixed:
+            if len(value) != self.length:
+                raise ValueError(
+                    f"Input array must have length of {self.length}, got {len(value)}."
+                )
+        else:
+            message += self.length_block.bin_encode(length)[2:]
         for i, v in enumerate(value):
-            if i == self.max_length:
+            if i == self.length:
                 break
             message += self.blocks.bin_encode(v)[2:]
         return message
 
     def _bin_decode(self, message):
-        length, message = self.length_block.consume(message)
+        if not self.fixed:
+            length, message = self.length_block.consume(message)
+        else:
+            length = self.length
         values = []
         for _ in range(length):
             v, message = self.blocks.consume(message)
@@ -357,7 +367,7 @@ class ArrayBlock(BlockBase):
         return self.bits + length * self.blocks.accumulate_bits(message)
 
     def _max_bits(self):
-        return self.bits + self.max_length * self.blocks.max_bits
+        return self.bits + self.length * self.blocks.bits
 
 
 class ObjectBlock(BlockBase):

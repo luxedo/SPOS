@@ -390,7 +390,7 @@ class TestEncodeDecode(TestCase):
                 {
                     "key": "buffer",
                     "type": "array",
-                    "bits": 8,
+                    "length": 255,
                     "blocks": {"key": "buf_val", "type": "integer", "bits": 8},
                 },
                 {"key": "date", "type": "float", "bits": 6},
@@ -560,7 +560,7 @@ class TestEncodeDecode(TestCase):
                 {
                     "key": "confidences",
                     "type": "array",
-                    "bits": 8,
+                    "length": 255,
                     "blocks": {
                         "key": "confidence",
                         "type": "float",
@@ -570,7 +570,7 @@ class TestEncodeDecode(TestCase):
                 {
                     "key": "categories",
                     "type": "array",
-                    "bits": 8,
+                    "length": 255,
                     "blocks": {
                         "key": "category",
                         "type": "categories",
@@ -627,7 +627,7 @@ class TestEncodeDecode(TestCase):
                 {
                     "key": "buffer",
                     "type": "array",
-                    "bits": 8,
+                    "length": 255,
                     "blocks": {"key": "buf_val", "type": "integer", "bits": 9},
                 },
                 {"key": "date", "type": "float", "bits": 7},
@@ -663,7 +663,7 @@ class TestEncodeDecode(TestCase):
                 {
                     "key": "buffer",
                     "type": "array",
-                    "bits": 8,
+                    "length": 255,
                     "blocks": {"key": "buf_val", "type": "integer", "bits": 8},
                 },
                 {"key": "date", "type": "float", "bits": 6},
@@ -732,7 +732,7 @@ class TestEncodeDecode(TestCase):
                 {
                     "key": "occurences",
                     "type": "array",
-                    "bits": 6,
+                    "length": 63,
                     "blocks": {
                         "key": "species",
                         "type": "object",
@@ -954,31 +954,31 @@ class TestStats(TestCase):
                 {
                     "key": "conf_arm",
                     "type": "array",
-                    "bits": 3,
+                    "length": 7,
                     "blocks": {"key": "conf", "type": "float", "bits": 5},
                 },
                 {
                     "key": "conf_eri",
                     "type": "array",
-                    "bits": 3,
+                    "length": 7,
                     "blocks": {"key": "conf", "type": "float", "bits": 5},
                 },
                 {
                     "key": "conf_cos",
                     "type": "array",
-                    "bits": 3,
+                    "length": 7,
                     "blocks": {"key": "conf", "type": "float", "bits": 5},
                 },
                 {
                     "key": "conf_fru",
                     "type": "array",
-                    "bits": 3,
+                    "length": 7,
                     "blocks": {"key": "conf", "type": "float", "bits": 5},
                 },
                 {
                     "key": "conf_sac",
                     "type": "array",
-                    "bits": 3,
+                    "length": 7,
                     "blocks": {"key": "conf", "type": "float", "bits": 5},
                 },
             ],
