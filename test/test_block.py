@@ -373,7 +373,7 @@ class TestBlock(TestCase):
 
     def test_array_fixed_length_error(self):
         block = {
-            "key": "nested array",
+            "key": "fixed array length error",
             "type": "array",
             "length": 4,
             "fixed": True,

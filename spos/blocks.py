@@ -363,11 +363,21 @@ class ArrayBlock(BlockBase):
         return values
 
     def accumulate_bits(self, message):
-        length, message = self.length_block.consume(message)
-        return self.bits + length * self.blocks.accumulate_bits(message)
+        bits = 0
+        if not self.fixed:
+            length, message = self.length_block.consume(message)
+            bits += self.bits
+        else:
+            length = self.length
+        bits += length * self.blocks.accumulate_bits(message)
+        return bits
 
     def _max_bits(self):
-        return self.bits + self.length * self.blocks.bits
+        max_bits = 0
+        if not self.fixed:
+            max_bits += self.bits
+        max_bits += self.length * self.blocks.max_bits
+        return max_bits
 
 
 class ObjectBlock(BlockBase):

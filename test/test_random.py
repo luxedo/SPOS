@@ -121,6 +121,16 @@ class TestRandomMessageAndValue(TestCase):
         }
         self.evaluate_message(block_spec)
 
+    def test_message_array_fixed(self):
+        block_spec = {
+            "key": "array",
+            "type": "array",
+            "fixed": True,
+            "length": 15,
+            "blocks": {"key": "float", "type": "float", "bits": 4},
+        }
+        self.evaluate_message(block_spec)
+
     def test_message_object(self):
         block_spec = {
             "key": "object",
