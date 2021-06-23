@@ -47,11 +47,11 @@ payload_spec = {
 payload_data = {
   "int_data": 13,    # 001101
   "float_data": 0.6  # 010011 (19/32 or 0.59375)
-                     # padding 000
+                     # padding 00
 }
 
 message = spos.encode(payload_data, payload_spec, output="bin")
-"0b1000110110011000"
+"0b1000110101001100"
 ```
 
 Then, to decode the `message`:
@@ -76,7 +76,7 @@ payload_spec = {
     "bits": 6
 }]
 
-message = "0b1000110110011000"
+message = "0b1000110101001100"
 decoded = spos.decode(message, payload_spec)
 decoded
 {
@@ -108,7 +108,7 @@ being sent.
 ```python
 payload_spec = {
   "name": "my payload",
-  "version": 1
+  "version": 1,
   "meta": {
     "encode_version": True,
     "version_bits": 4,
@@ -146,7 +146,7 @@ payload_spec = {
   - **version_bits** (integer): Sets the number of bits used to encode
     the version in the header of the message.
 
-  - **crc8** (boolean): If `True` calculates the [CRC8](https://en.wikipedia.org/wiki/Cyclic_redundancy_check)
+  - **crc8** (boolean): If `True`, calculates the [CRC8](https://en.wikipedia.org/wiki/Cyclic_redundancy_check)
     (8bits) for the message and appends it to payload. The decoder also
     checks if the CRC8 is valid.
 
@@ -184,7 +184,7 @@ a `key` and a data `type`. `value` is an optional key. For each `type`
 there might be aditional required keys and/or optional keys.
 
 The value to be encoded is either a `key` in found in the `payload_data`
-object or a statuc `value`.
+object or a static `value`.
 
 The encoded data is _big-endian_ and truncations of data may occour in
 the least significant bits when applicable. Data overflow is set to
@@ -193,7 +193,7 @@ the maximum value and underflow to the minimum.
 ### Block keys
 
 - **key** (string): The key is used to get the value for the `block` in
-  `payload_data`, and then to describe it's value in the decoded messasge.
+  `payload_data`, and then to describe it's value in the decoded message.
   Optionally, the `key` can accesss a value in a nested objects using a
   dot `.` to separate the levels. Eg:
 
@@ -215,11 +215,11 @@ spos.encode(payload_data, payload_spec, output="bin")
 "0b11111111"
 ```
 
-- **value** (any): Static value for the `block` (optional).
-
 - **type** (string): Data type for encoding the message. There are 10 avaliable types
   for serializing data: `boolean`, `binary`, `integer`, `float`, `pad`,
-  `array`, `object`, `string`, `steps`, and `categories`.
+  `array`, `object`, `string`, `steps` and `categories`.
+
+- **value** (any): Static value for the `block` (optional). Must be consistent with defined type.
 
 ---
 
@@ -227,9 +227,10 @@ spos.encode(payload_data, payload_spec, output="bin")
 
 #### boolean
 
-Input: `boolean`, `integer`.
+Input: `boolean`, `integer` (0 ? False : True). 
 
 Additional keys: `None`.
+
 
 #### binary
 
@@ -249,14 +250,16 @@ Additional keys:
 
 - `bits` (int): length of the block in bits
 
+
 #### integer
 
 Input: `integer`.
 
-Additional key:
+Additional keys:
 
 - `bits` (int): length of the block in bits
 - `offset` (int): An integer to offset the final value. Default: 0.
+
 
 #### float
 
@@ -275,6 +278,7 @@ Additional keys:
 - `approximation` (str), optional: Float approximation method.
   Values can be: "round", "floor", "ceil". Default: "round"
 
+
 #### pad
 
 Pads the message. No data is collected from this block.
@@ -284,6 +288,7 @@ Input: `None`.
 Additional keys:
 
 - `bits` (int): length of the block in bits
+
 
 #### array
 
@@ -306,6 +311,7 @@ Additional keys:
 - `fixed`  (bool): Fixed length array. Default: false.
 - `blocks` (block): The `block` specification of the data in the array.
 
+
 #### object
 
 Maps the data to an object.
@@ -318,6 +324,7 @@ Input: `object`.
 Additional keys:
 
 - `blocklist` (blocklist): The `array` of `blocks` describing the object.
+
 
 #### string
 
@@ -356,6 +363,7 @@ payload_spec = {
 
 ```
 
+
 #### steps
 
 Maps a numeric value to named steps. Eg:
@@ -367,7 +375,7 @@ payload_spec = {
     "key": "battery",
     "steps": [0.1, 0.6, 0.95],
     "steps_names": ["critical", "low", "discharging", "charged"]
-    # [-Inf, 0.1) critical, [0.1, 0.6) low, [0.6, 0.95) discharging, [0.95, Inf) charged
+    # (-Inf, 0.1) critical, [0.1, 0.6) low, [0.6, 0.95) discharging, [0.95, Inf) charged
 }]
 payload_data = {"bat": 0.3}  # low
 ```
@@ -386,6 +394,7 @@ Additional keys:
 - `steps_names` (array), optional: Names for each step. If not provided the names
   are created based on steps.
 
+
 #### categories
 
 Maps strings to categories: Eg:
@@ -400,11 +409,11 @@ payload_spec = {
 payload_data = {"color": "red"}  # low
 ```
 
-The number of bits for this type is the closest integer above
-log2(length `steps` + 1). In the example above it is 2 bits.
-
 The category **unknown** is added to represent data that are not present
 in the `categories` array.
+
+Therefore, the number of bits for this type is the closest integer above
+log2(length `categories` + 1). In the example above it is 3 bits.
 
 An additional category **error** may be given on decoding if the message
 overflows for this type.
@@ -428,7 +437,7 @@ def encode(payload_data, payload_spec, output="bin"):
         output (str): Return format (bin, hex or bytes). default: "bin".
 
     Returns:
-        message (bytes): Message.
+        message (bin | hex | bytes): Message.
     """
 ```
 
