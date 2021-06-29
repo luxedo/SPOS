@@ -257,8 +257,10 @@ Input: `integer`.
 
 Additional keys:
 
-- `bits` (int): length of the block in bits
-- `offset` (int): An integer to offset the final value. Default: 0.
+- `bits` (int): Length of the block in bits
+- `offset` (int), optional: An integer to offset the final value. Default: 0.
+- `mode` (str): How to handle with underflows and overflows.
+  Values can be: "truncate", "remainder". Default: "truncate"
 
 
 #### float
