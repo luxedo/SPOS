@@ -204,6 +204,29 @@ class TestBlock(TestCase):
         a = "0b111111"
         self.assertEqual(spos.encode_block(t, block), a)
 
+    def test_integer_remainder(self):
+        block = {
+            "key": "integer remainder",
+            "type": "integer",
+            "mode": "remainder",
+            "bits": 6,
+        }
+        t = 72
+        a = "0b001000"
+        self.assertEqual(spos.encode_block(t, block), a)
+
+    def test_integer_offset_remainder(self):
+        block = {
+            "key": "integer remainder offset",
+            "type": "integer",
+            "offset": 3,
+            "mode": "remainder",
+            "bits": 3,
+        }
+        t = 22
+        a = "0b011"
+        self.assertEqual(spos.encode_block(t, block), a)
+
     def test_float_block(self):
         block = {"key": "float test", "type": "float", "bits": 2}
         t = 0.66

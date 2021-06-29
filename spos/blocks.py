@@ -267,15 +267,25 @@ class BinaryBlock(BlockBase):
 
 class IntegerBlock(BlockBase):
     required = {"bits": int}
-    optional = {"offset": {"type": int, "default": 0}}
-    offset = None  # Just to calm down the linter
+    optional = {
+        "offset": {"type": int, "default": 0},
+        "mode": {
+            "type": str,
+            "default": "truncate",
+            "choices": ["truncate", "remainder"],
+        }
+    }
+    offset, mode = None, None  # Just to calm down the linter
 
     @validate_encode_input_types(int)
     def _bin_encode(self, value):
         value -= self.offset
         bits = self.bits
         overflow = 2 ** bits - 1
-        bit_str = bin(min([max([value, 0]), overflow]))
+        if self.mode == 'remainder':
+            bit_str = bin(value % (2 ** bits))
+        elif self.mode == 'truncate':
+            bit_str = bin(min([max([value, 0]), overflow]))
         return truncate_bits(bit_str, bits)
 
     def _bin_decode(self, message):
