@@ -581,6 +581,7 @@ optional arguments:
   -r, --random          Creates a random message/decoded_message
   -I, --random-input    Creates a random payload data input
   -m, --meta            Outputs the metadata when decoding
+  -s, --stats           Returns payload spec statistics
   -i [INPUT], --input [INPUT]
                         Input file
   -o [OUTPUT], --output [OUTPUT]
