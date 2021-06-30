@@ -1,3 +1,31 @@
+Table of Contents
+=================
+
+   * [SPOS](#spos)
+      * [Quick Start](#quick-start)
+      * [Installation](#installation)
+      * [Payload Specification](#payload-specification)
+         * [Payload specification keys](#payload-specification-keys)
+      * [Block](#block)
+         * [Block keys](#block-keys)
+         * [Types](#types)
+            * [boolean](#boolean)
+            * [binary](#binary)
+            * [integer](#integer)
+            * [float](#float)
+            * [pad](#pad)
+            * [array](#array)
+            * [object](#object)
+            * [string](#string)
+            * [steps](#steps)
+            * [categories](#categories)
+      * [Encode and Decode Functions](#encode-and-decode-functions)
+      * [Decoding messages of multiple versions](#decoding-messages-of-multiple-versions)
+      * [Random payloads](#random-payloads)
+      * [Command line usage](#command-line-usage)
+      * [Contributors](#contributors)
+      * [License](#license)
+
 # SPOS
 
 > **SPOS** stands for **Small Payload Object Serializer**.
