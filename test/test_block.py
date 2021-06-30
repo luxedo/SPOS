@@ -80,6 +80,16 @@ class TestValidateBlock(TestCase):
         with self.assertRaises(KeyError):
             spos.Block(block)
 
+    def test_invalid_choice(self):
+        block = {
+            "key": "aloha",
+            "type": "integer",
+            "mode": "wrong mode",
+            "bits": 1,
+        }
+        with self.assertRaises(ValueError):
+            spos.Block(block)
+
 
 class TestBlock(TestCase):
     def test_boolean_true(self):
