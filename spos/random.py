@@ -115,7 +115,8 @@ class RandomBlock:
         return self.block.bin_encode(self.random_value())
 
     def categories_random_value(self):
-        return random.choice(self.block.categories[:-1])
+        return random.choice(self.block.categories)
+            
 
     def categories_random_message(self) -> str:
         return self.block.bin_encode(self.random_value())

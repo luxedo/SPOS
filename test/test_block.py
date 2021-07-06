@@ -714,13 +714,13 @@ class TestBlock(TestCase):
         self.assertEqual(spos.encode_block(t, block), a)
         self.assertEqual(spos.decode_block(a, block), t)
 
-    def test_categories_block_4(self):
+    def test_categories_block_unknown(self):
         block = {
             "key": "categories",
             "type": "categories",
             "categories": ["critical", "low", "charged", "full"],
         }
-        t = "unknown"
+        t = "invalid"
         a = "0b100"
         t_dec = "unknown"
         self.assertEqual(spos.encode_block(t, block), a)
@@ -735,6 +735,68 @@ class TestBlock(TestCase):
         a = "0b111"
         t_dec = "error"
         self.assertEqual(spos.decode_block(a, block), t_dec)
+
+    def test_categories_key_error(self):
+        block = {
+            "key": "categories",
+            "type": "categories",
+            "categories": ["critical", "low", "charged", "full"],
+            "error": "critical"
+        }
+        t = "invalid"
+        a = "0b00"
+        t_dec = "critical"
+        self.assertEqual(spos.encode_block(t, block), a)
+        self.assertEqual(spos.decode_block(a, block), t_dec)
+
+    def test_categories_error_raise(self):
+        block = {
+            "key": "categories",
+            "type": "categories",
+            "categories": ["critical", "low", "charged", "full"],
+            "error": False
+        }
+        t = "invalid"
+        with self.assertRaises(ValueError) as ctx:
+            a = spos.encode_block(t, block)
+        self.assertEqual("Invalid value for category.", str(ctx.exception))
+    
+    def test_categories_error_false(self):
+        block = {
+            "key": "categories",
+            "type": "categories",
+            "categories": ["critical", "low", "charged", "full"],
+            "error": False
+        }
+        t = "full"
+        a = "0b11"
+        self.assertEqual(spos.encode_block(t, block), a)
+
+    def test_categories_error_new(self):
+        block = {
+            "key": "categories",
+            "type": "categories",
+            "categories": ["critical", "low", "charged", "full"],
+            "error": "invalid_category"
+        }
+        t = "invalid_value"
+        a = "0b100"
+        t_dec = "invalid_category"
+        self.assertEqual(spos.encode_block(t, block), a)
+        self.assertEqual(spos.decode_block(a, block), t_dec)
+
+    def test_categories_error_new_valid(self):
+        block = {
+            "key": "categories",
+            "type": "categories",
+            "categories": ["critical", "low", "charged", "full"],
+            "error": "invalid_category"
+        }
+        t = "full"
+        a = "0b011"
+        self.assertEqual(spos.encode_block(t, block), a)
+        self.assertEqual(spos.decode_block(a, block), t)
+
 
     def test_crc_bin(self):
         t = "0b1011110010110010"

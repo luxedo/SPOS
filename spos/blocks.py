@@ -554,27 +554,43 @@ class StepsBlock(BlockBase):
 
 class CategoriesBlock(BlockBase):
     required = {"categories": list}
+    optional = {
+        "error": {
+            "type": (str, bool),
+            "default": "unknown"
+        }
+    }
+
     categories = None
+    error = None
 
     def initialize_block(self):
-        self.categories = self.categories + ["unknown"]
-        self.bits = math.ceil(math.log(len(self.categories), 2))
+        length = len(self.categories)
+        if (self.error is not False) and (self.error not in self.categories):
+            length += 1
+        self.bits = math.ceil(math.log(length, 2))
         self.categories_block = IntegerBlock({"bits": self.bits, "offset": 0})
 
     @validate_encode_input_types(str)
     def _bin_encode(self, value):
-        value = (
-            len(self.categories) - 1
-            if value not in self.categories
-            else self.categories.index(value)
-        )
+        if value in self.categories:
+            value = self.categories.index(value)
+        elif self.error in self.categories:
+            value = self.categories.index(self.error)
+        elif self.error is not False:
+            value = len(self.categories)
+        else:
+            raise ValueError("Invalid value for category.")
         return self.categories_block.bin_encode(value)
 
     def _bin_decode(self, message):
         value = self.categories_block.bin_decode(message)
-        return (
-            self.categories[value] if value < len(self.categories) else "error"
-        )
+        if value < len(self.categories):
+            return self.categories[value]
+        elif (value == len(self.categories)) and self.error is not False:
+            return self.error
+        else:
+            return "error"
 
 
 # ---------------------------------------------------------------------
