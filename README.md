@@ -425,7 +425,7 @@ Additional keys:
   are created based on steps.
 
 
-#### categories
+[####](####) categories
 
 Maps strings to categories: Eg:
 
@@ -435,24 +435,32 @@ payload_spec = {
     "type:": "categories",
     "key": "color",
     "categories": ["red", "green", "blue", "iridescent"],
+    "error": "unknown"
 }]
-payload_data = {"color": "red"}  # low
+payload_data = {"color": "red"}  # red
 ```
 
-The category **unknown** is added to represent data that are not present
-in the `categories` array.
+The `error` key is optional and creates a new category to represent data that
+are not present in the `categories` array. Therefore, the number of bits for
+this type is the closest integer above log2(length `categories` + 1).
+In the example above it is 3 bits.
 
-Therefore, the number of bits for this type is the closest integer above
-log2(length `categories` + 1). In the example above it is 3 bits.
+If `error` is **None** (default value), no extra category is created. In this case,
+an error is raised if the value is not present in `categories`. Also the number of
+bits is the closest integer above log2(length `categories`).
 
-An additional category **error** may be given on decoding if the message
-overflows for this type.
+It is also possible to assign an existing category to `error`. In this case, invalid
+values are 'converted' to it and the number of bits is equal to the **None** case.
+
+On decoding, an additional category **error** may be given if the message overflows
+for this type.
 
 Input: `string`.
 
 Additional keys:
 
 - `categories` (array): The array of categories strings.
+- `error` (str), optional: Category to represent invalid values. Default: None
 
 ## Encode and Decode Functions
 

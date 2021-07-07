@@ -556,8 +556,8 @@ class CategoriesBlock(BlockBase):
     required = {"categories": list}
     optional = {
         "error": {
-            "type": (str, bool),
-            "default": "unknown"
+            "type": (str, None),
+            "default": None
         }
     }
 
@@ -566,7 +566,7 @@ class CategoriesBlock(BlockBase):
 
     def initialize_block(self):
         length = len(self.categories)
-        if (self.error is not False) and (self.error not in self.categories):
+        if (self.error is not None) and (self.error not in self.categories):
             length += 1
         self.bits = math.ceil(math.log(length, 2))
         self.categories_block = IntegerBlock({"bits": self.bits, "offset": 0})
@@ -577,7 +577,7 @@ class CategoriesBlock(BlockBase):
             value = self.categories.index(value)
         elif self.error in self.categories:
             value = self.categories.index(self.error)
-        elif self.error is not False:
+        elif self.error is not None:
             value = len(self.categories)
         else:
             raise ValueError("Invalid value for category.")
@@ -587,7 +587,7 @@ class CategoriesBlock(BlockBase):
         value = self.categories_block.bin_decode(message)
         if value < len(self.categories):
             return self.categories[value]
-        elif (value == len(self.categories)) and self.error is not False:
+        elif (value == len(self.categories)) and self.error is not None:
             return self.error
         else:
             return "error"
