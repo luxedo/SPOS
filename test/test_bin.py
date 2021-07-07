@@ -124,11 +124,15 @@ class TestSposBin(TestCase):
             payload_spec_file, message_b, fmt
         )
         self.assertEqual(
-            spos.decode(message, payload_spec), json.loads(payload_bin),
+            spos.decode(message, payload_spec),
+            json.loads(payload_bin),
         )
 
     def test_version(self):
-        proc = subprocess.run(["bin/spos", "-v"], stdout=subprocess.PIPE,)
+        proc = subprocess.run(
+            ["bin/spos", "-v"],
+            stdout=subprocess.PIPE,
+        )
         self.assertTrue(
             re.match(
                 "^spos v[0-9]+[.][0-9]+[.][0-9]+(-([ab]|rc[0-9]+))?$",

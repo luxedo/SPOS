@@ -343,7 +343,7 @@ def stats(payload_spec):
     body_block = Block({"key": "body", "type": "object", "blocklist": body})
     st = [version_block.stats()] if version_block is not None else []
     st += [header_block.stats(), body_block.stats()]
-    if payload_spec.get("meta").get("crc8") == True:
+    if payload_spec.get("meta").get("crc8") is True:
         st += [{"key": "crc8", "type": "crc8", "max_bits": 8, "min_bits": 8}]
     return {
         "name": payload_spec["name"],

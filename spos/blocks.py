@@ -405,6 +405,7 @@ class ArrayBlock(BlockBase):
             min_bits += self.length * self.blocks.max_bits
         return min_bits
 
+
 class ObjectBlock(BlockBase):
     required = {"blocklist": "blocklist"}
     blocklist = None
@@ -561,12 +562,7 @@ class StepsBlock(BlockBase):
 
 class CategoriesBlock(BlockBase):
     required = {"categories": list}
-    optional = {
-        "error": {
-            "type": (str, None),
-            "default": None
-        }
-    }
+    optional = {"error": {"type": (str, None), "default": None}}
 
     categories = None
     error = None

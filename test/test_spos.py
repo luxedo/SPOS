@@ -197,7 +197,8 @@ class TestMeta(TestCase):
         dec, dec_meta = dec["body"], dec["meta"]
         self.assertDict(dec, {"jon": False})
         self.assertDict(
-            dec_meta, {"name": "john", "version": 3, "message": hex_enc},
+            dec_meta,
+            {"name": "john", "version": 3, "message": hex_enc},
         )
 
     def test_encode_version_type_error(self):
