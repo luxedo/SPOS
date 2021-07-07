@@ -397,6 +397,13 @@ class ArrayBlock(BlockBase):
         max_bits += self.length * self.blocks.max_bits
         return max_bits
 
+    def _min_bits(self):
+        min_bits = 0
+        if not self.fixed:
+            min_bits += self.bits
+        else:
+            min_bits += self.length * self.blocks.max_bits
+        return min_bits
 
 class ObjectBlock(BlockBase):
     required = {"blocklist": "blocklist"}
