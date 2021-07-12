@@ -425,7 +425,7 @@ Additional keys:
   are created based on steps.
 
 
-[####](####) categories
+#### categories
 
 Maps strings to categories: Eg:
 
@@ -437,7 +437,8 @@ payload_spec = {
     "categories": ["red", "green", "blue", "iridescent"],
     "error": "unknown"
 }]
-payload_data = {"color": "red"}  # red
+payload_data_1 = {"color": "red"}  # red
+payload_data_2 = {"color": "brown"} # unknown
 ```
 
 The `error` key is optional and creates a new category to represent data that
@@ -445,9 +446,20 @@ are not present in the `categories` array. Therefore, the number of bits for
 this type is the closest integer above log2(length `categories` + 1).
 In the example above it is 3 bits.
 
-If `error` is **None** (default value), no extra category is created. In this case,
-an error is raised if the value is not present in `categories`. Also the number of
-bits is the closest integer above log2(length `categories`).
+```python
+payload_spec = {
+  "body": [{
+    "type:": "categories",
+    "key": "color",
+    "categories": ["red", "green", "blue", "iridescent"],
+}]
+payload_data_1 = {"color": "blue"}  # blue
+payload_data_2 = {"color": "yellow"} # Raises an Error
+```
+
+If `error` is not defined (default value **None**), no extra category is created. In this case,
+an error is raised if the value is not present in `categories`. The number of
+bits is the closest integer above log2(length `categories`). In the example above, 2 bits.
 
 It is also possible to assign an existing category to `error`. In this case, invalid
 values are 'converted' to it and the number of bits is equal to the **None** case.
