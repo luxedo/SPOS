@@ -223,7 +223,9 @@ class TestBlock(TestCase):
         }
         t = 72
         a = "0b001000"
+        t_dec = 8
         self.assertEqual(spos.encode_block(t, block), a)
+        self.assertEqual(spos.decode_block(a, block), t_dec)
 
     def test_integer_offset_remainder(self):
         block = {
@@ -235,7 +237,9 @@ class TestBlock(TestCase):
         }
         t = 22
         a = "0b011"
+        t_dec = 6
         self.assertEqual(spos.encode_block(t, block), a)
+        self.assertEqual(spos.decode_block(a, block), t_dec)
 
     def test_float_block(self):
         block = {"key": "float test", "type": "float", "bits": 2}
