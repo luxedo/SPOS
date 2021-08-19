@@ -327,6 +327,69 @@ class TestBlock(TestCase):
         a = "0b111111"
         self.assertEqual(spos.encode_block(t, block), a)
 
+    def test_float_mode_lower(self):
+        block = {
+            "key": "float mode lower",
+            "type": "float",
+            "mode": "lower",
+            "factor": 1.0,
+            "upper": 255,
+            "bits" : 8
+        }
+        t = 80
+        a = '0b11000000'
+        self.assertEqual(spos.encode_block(t, block), a)
+
+    def test_float_mode_upper(self):
+        block = {
+            "key": "float mode upper",
+            "type": "float",
+            "mode": "upper",
+            "factor": 1.0,
+            "upper": 255,
+            "bits" : 8
+        }
+        t = 80
+        a = '0b00001101'
+        self.assertEqual(spos.encode_block(t, block), a)
+
+    def test_float_mode_extremes(self):
+        block = {
+            "key": "float mode extremes",
+            "type": "float",
+            "mode": "extremes",
+            "factor": 1.0,
+            "upper": 255,
+            "bits" : 8
+        }
+        t = 80
+        a = '0b01111101'
+        self.assertEqual(spos.encode_block(t, block), a)
+
+    def test_float_mode_center(self):
+        block = {
+            "key": "float mode center",
+            "type": "float",
+            "mode": "center",
+            "factor": 1.0,
+            "upper": 255,
+            "bits" : 8
+        }
+        t = 80
+        a = '0b00001110'
+        self.assertEqual(spos.encode_block(t, block), a)
+
+    def test_float_mode_default(self):
+        block = {
+            "key": "float mode upper",
+            "type": "float",
+            "upper": 255,
+            "bits" : 8
+        }
+        t = 80
+        a = '0b01010000'
+        self.assertEqual(spos.encode_block(t, block), a)
+
     def test_pad_block_2(self):
         block = {"key": "pad test", "type": "pad", "bits": 2}
         t = None

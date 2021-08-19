@@ -29,6 +29,9 @@ import math
 import re
 import warnings
 
+from numpy import asfortranarray as fortranarray
+import bezier
+
 from .utils import truncate_bits, nest_keys
 from .exceptions import StaticValueMismatchWarning
 
@@ -305,31 +308,116 @@ class FloatBlock(BlockBase):
     optional = {
         "lower": {"type": (int, float), "default": 0},
         "upper": {"type": (int, float), "default": 1},
+        "factor": {"type": (int, float), "default": 0},
+        "mode":  {
+            "type": (str),
+            "default": "center",
+            "choices": ["lower", "upper", "extremes", "center"]
+        },
         "approximation": {
             "type": (str),
             "default": "round",
             "choices": ["round", "floor", "ceil"],
         },
     }
-    lower, upper, approximation = None, None, None
+    lower, upper, approximation, mode, factor = None, None, None, None, None
+
+    def _bezier(self,  value, function):
+        lower = self.lower
+        upper = self.upper
+        mode = self.mode
+        factor = self.factor
+        bits = self.bits
+
+        min_val = 0
+        max_val = 2**bits - 1
+        dist_x = (1 - factor) * (upper - lower)/2
+        dist_y = (1 - factor) * (max_val/2)
+        
+        p0 = (lower, 0)
+        p3 = (upper, max_val)
+        
+        if (mode == 'lower'):
+            p1 = (lower + dist_x, max_val - dist_y)
+            p2 = (upper - dist_x, max_val - dist_y)
+        elif (mode == 'upper'):
+            p1 = (lower + dist_x, min_val + dist_y)
+            p2 = (upper - dist_x, min_val + dist_y)
+        elif (mode == 'center'):
+            p1 = (upper - dist_x, min_val + dist_y)
+            p2 = (lower + dist_x, max_val - dist_y)
+        elif (mode == 'extremes'):
+            p1 = (lower + dist_x, max_val - dist_y)
+            p2 = (upper - dist_x, min_val + dist_y)
+
+        nodes = fortranarray([
+            [p0[0], p1[0], p2[0], p3[0]],
+            [p0[1], p1[1], p2[1], p3[1]]
+        ])
+        
+        if (function == 'encode'):
+            line_nodes = fortranarray([
+                [value, value],
+                [0, 2**bits]
+            ])
+        elif (function == 'decode'):
+            line_nodes = fortranarray([
+                [lower, upper],
+                [value, value]
+            ])
+
+        curve = bezier.Curve(nodes, degree=3)
+        line = bezier.Curve(line_nodes, degree=1)
+
+        intersections = curve.intersect(line)
+        s_vals = intersections[0, :]
+        point = curve.evaluate_multi(s_vals)
+        encoded = float(point[1])
+        decoded = float(point[0])
+            
+        if (function == 'encode'):
+            return encoded    
+        elif (function == 'decode'):
+            return decoded
 
     @validate_encode_input_types(int, float)
     def _bin_encode(self, value):
+        overflow = 2**self.bits - 1
+        delta = self.upper - self.lower
+
         approx = round
         if self.approximation == "floor":
             approx = math.floor
         elif self.approximation == "ceil":
             approx = math.ceil
-        overflow = 2 ** self.bits - 1
-        delta = self.upper - self.lower
-        value = overflow * (value - self.lower) / delta
+
+        if (value <= self.lower):
+            value = 0
+        elif (value >= self.upper):
+            value = 2**self.bits - 1
+        elif (self.factor == 0):
+            value = overflow * (value - self.lower) / delta
+        else:
+            value = self._bezier(value, 'encode')
+
         bit_str = bin(approx(min([max([value, 0]), overflow])))
         return truncate_bits(bit_str, self.bits)
 
     def _bin_decode(self, message):
+        overflow = 2**self.bits - 1
         delta = self.upper - self.lower
-        overflow = 2 ** self.bits - 1
-        return int(message, 2) * delta / overflow + self.lower
+
+        message = int(message,2)
+
+        if (message == 0):
+            value = self.lower
+        elif (message == 2**self.bits - 1):
+            value = self.upper
+        elif (self.factor == 0):
+            value = self.lower + (message * delta) / overflow 
+        else:
+            value = self._bezier(message, 'decode')
+        return value
 
 
 class PadBlock(BlockBase):
