@@ -1,30 +1,29 @@
-Table of Contents
-=================
+# Table of Contents
 
-   * [SPOS](#spos)
-      * [Quick Start](#quick-start)
-      * [Installation](#installation)
-      * [Payload Specification](#payload-specification)
-         * [Payload specification keys](#payload-specification-keys)
-      * [Block](#block)
-         * [Block keys](#block-keys)
-         * [Types](#types)
-            * [boolean](#boolean)
-            * [binary](#binary)
-            * [integer](#integer)
-            * [float](#float)
-            * [pad](#pad)
-            * [array](#array)
-            * [object](#object)
-            * [string](#string)
-            * [steps](#steps)
-            * [categories](#categories)
-      * [Encode and Decode Functions](#encode-and-decode-functions)
-      * [Decoding messages of multiple versions](#decoding-messages-of-multiple-versions)
-      * [Random payloads](#random-payloads)
-      * [Command line usage](#command-line-usage)
-      * [Contributors](#contributors)
-      * [License](#license)
+- [SPOS](#spos)
+  - [Quick Start](#quick-start)
+  - [Installation](#installation)
+  - [Payload Specification](#payload-specification)
+    - [Payload specification keys](#payload-specification-keys)
+  - [Block](#block)
+    - [Block keys](#block-keys)
+    - [Types](#types)
+      - [boolean](#boolean)
+      - [binary](#binary)
+      - [integer](#integer)
+      - [float](#float)
+      - [pad](#pad)
+      - [array](#array)
+      - [object](#object)
+      - [string](#string)
+      - [steps](#steps)
+      - [categories](#categories)
+  - [Encode and Decode Functions](#encode-and-decode-functions)
+  - [Decoding messages of multiple versions](#decoding-messages-of-multiple-versions)
+  - [Random payloads](#random-payloads)
+  - [Command line usage](#command-line-usage)
+  - [Contributors](#contributors)
+  - [License](#license)
 
 # SPOS
 
@@ -220,7 +219,7 @@ the maximum value and underflow to the minimum.
 
 ### Block keys
 
-- **key** (string): The key is used to get the value for the `block` in
+- **key** (string): The key is used to name the value for the `block` in
   `payload_data`, and then to describe it's value in the decoded message.
   Optionally, the `key` can accesss a value in a nested objects using a
   dot `.` to separate the levels. Eg:
@@ -247,7 +246,35 @@ spos.encode(payload_data, payload_spec, output="bin")
   for serializing data: `boolean`, `binary`, `integer`, `float`, `pad`,
   `array`, `object`, `string`, `steps` and `categories`.
 
-- **value** (any): Static value for the `block` (optional). Must be consistent with defined type.
+- **value** (any), optional: Static value for the `block`. Must be consistent with defined type.
+
+- **location** (string), optional: Overrides `key` for accessing the value to encode. Does
+  nothing when decoding. Eg:
+
+```python
+payload_spec = {
+  "name": "example location access",
+  "version": 2,
+  "body": [{
+    "type": "integer",
+    "bits": 8,
+    "key": "my key",
+    "location": "far.away.key"
+  }]
+payload_data = {
+  "far": {
+    "away": {
+      "key": 255
+    }
+  }
+}
+message = spos.encode(payload_data, payload_spec, output="bin")
+# "0b11111111"
+spos.decode(message, payload_spec, output="bin")
+# payload_data = {
+#   "my key": 255
+# }
+```
 
 ---
 
@@ -255,10 +282,9 @@ spos.encode(payload_data, payload_spec, output="bin")
 
 #### boolean
 
-Input: `boolean`, `integer` (0 ? False : True). 
+Input: `boolean`, `integer` (0 ? False : True).
 
 Additional keys: `None`.
-
 
 #### binary
 
@@ -278,7 +304,6 @@ Additional keys:
 
 - `bits` (int): length of the block in bits
 
-
 #### integer
 
 Input: `integer`.
@@ -289,7 +314,6 @@ Additional keys:
 - `offset` (int), optional: An integer to offset the final value. Default: 0.
 - `mode` (str): How to handle with underflows and overflows.
   Values can be: "truncate", "remainder". Default: "truncate"
-
 
 #### float
 
@@ -308,7 +332,6 @@ Additional keys:
 - `approximation` (str), optional: Float approximation method.
   Values can be: "round", "floor", "ceil". Default: "round"
 
-
 #### pad
 
 Pads the message. No data is collected from this block.
@@ -318,7 +341,6 @@ Input: `None`.
 Additional keys:
 
 - `bits` (int): length of the block in bits
-
 
 #### array
 
@@ -338,9 +360,8 @@ Input: An `array` of values allowed for the defined `block`.
 Additional keys:
 
 - `length` (int): Maximum length of the array.
-- `fixed`  (bool): Fixed length array. Default: false.
+- `fixed` (bool): Fixed length array. Default: false.
 - `blocks` (block): The `block` specification of the data in the array.
-
 
 #### object
 
@@ -354,7 +375,6 @@ Input: `object`.
 Additional keys:
 
 - `blocklist` (blocklist): The `array` of `blocks` describing the object.
-
 
 #### string
 
@@ -393,7 +413,6 @@ payload_spec = {
 
 ```
 
-
 #### steps
 
 Maps a numeric value to named steps. Eg:
@@ -423,7 +442,6 @@ Additional keys:
 - `steps` (array): Array listing the boundaries of each step.
 - `steps_names` (array), optional: Names for each step. If not provided the names
   are created based on steps.
-
 
 #### categories
 
@@ -616,19 +634,19 @@ optional arguments:
 ## License
 
 > MIT License
-> 
+>
 > Copyright (c) 2020 [Luiz Eduardo Amaral](luizamaral306@gmail.com)
-> 
+>
 > Permission is hereby granted, free of charge, to any person obtaining a copy
 > of this software and associated documentation files (the "Software"), to deal
 > in the Software without restriction, including without limitation the rights
 > to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 > copies of the Software, and to permit persons to whom the Software is
 > furnished to do so, subject to the following conditions:
-> 
+>
 > The above copyright notice and this permission notice shall be included in all
 > copies or substantial portions of the Software.
-> 
+>
 > THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 > IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 > FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
