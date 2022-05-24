@@ -27,8 +27,7 @@ import copy
 import random
 
 from .exceptions import SpecsVersionError
-
-from .typing import Any, Dict, List, Blocklist, PayloadSpec
+from .typing import Any, Blocklist, Dict, List, PayloadSpec
 
 
 def truncate_bits(bit_str: str, bits: int) -> str:

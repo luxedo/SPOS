@@ -24,7 +24,6 @@ SOFTWARE.
 """
 import unittest
 
-
 test_specs = {
     "test_0": "test/json/test_spec_0.json",
     "test_1": "test/json/test_spec_1.json",

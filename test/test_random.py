@@ -22,9 +22,10 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
-from . import TestCase
 import spos
 from spos import random as srandom
+
+from . import TestCase
 
 
 class TestRandomMessageAndValue(TestCase):

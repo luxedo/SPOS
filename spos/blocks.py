@@ -23,16 +23,15 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
 import abc
-from string import ascii_uppercase, ascii_lowercase, digits
 import copy
 import math
 import re
 import warnings
+from string import ascii_lowercase, ascii_uppercase, digits
 
-from .utils import truncate_bits, nest_keys
 from .exceptions import StaticValueMismatchWarning
-
-from .typing import Any, Dict, Union, Optional, Tuple, Message
+from .typing import Any, Dict, Message, Optional, Tuple, Union
+from .utils import nest_keys, truncate_bits
 
 
 # ---------------------------------------------------------------------
@@ -289,9 +288,9 @@ class IntegerBlock(BlockBase):
     def _bin_encode(self, value):
         value -= self.offset
         bits = self.bits
-        overflow = 2 ** bits - 1
+        overflow = 2**bits - 1
         if self.mode == "remainder":
-            bit_str = bin(value % (2 ** bits))
+            bit_str = bin(value % (2**bits))
         elif self.mode == "truncate":
             bit_str = bin(min([max([value, 0]), overflow]))
         return truncate_bits(bit_str, bits)
@@ -320,7 +319,7 @@ class FloatBlock(BlockBase):
             approx = math.floor
         elif self.approximation == "ceil":
             approx = math.ceil
-        overflow = 2 ** self.bits - 1
+        overflow = 2**self.bits - 1
         delta = self.upper - self.lower
         value = overflow * (value - self.lower) / delta
         bit_str = bin(approx(min([max([value, 0]), overflow])))
@@ -328,7 +327,7 @@ class FloatBlock(BlockBase):
 
     def _bin_decode(self, message):
         delta = self.upper - self.lower
-        overflow = 2 ** self.bits - 1
+        overflow = 2**self.bits - 1
         return int(message, 2) * delta / overflow + self.lower
 
 

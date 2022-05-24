@@ -24,9 +24,10 @@ SOFTWARE.
 """
 import warnings
 
-from spos.blocks import truncate_bits
-from . import TestCase
 import spos
+from spos.blocks import truncate_bits
+
+from . import TestCase
 
 
 class TestValidateBlock(TestCase):

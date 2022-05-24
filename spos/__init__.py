@@ -24,27 +24,25 @@ SOFTWARE.
 """
 import re
 
+from . import utils
 from .blocks import Block
+from .checks import check_crc8, create_crc8
 from .exceptions import (
-    VersionError,
     PayloadSpecError,
     SpecsVersionError,
     StaticValueMismatchWarning,
+    VersionError,
 )
-from .checks import create_crc8, check_crc8
-from . import utils
-
 from .typing import (
     Any,
     Dict,
     List,
-    Union,
-    Tuple,
-    Optional,
     Message,
+    Optional,
     PayloadSpec,
+    Tuple,
+    Union,
 )
-
 
 __version__ = "1.5.0-b"
 

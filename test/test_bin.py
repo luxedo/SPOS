@@ -26,8 +26,9 @@ import json
 import re
 import subprocess
 
-from spos import random as srandom
 import spos
+from spos import random as srandom
+
 from . import TestCase, test_specs
 
 
