@@ -122,7 +122,7 @@ class RandomBlock:
 
     # Mock methods for linters/mypy
     def cache_message(self):
-        pass
+        pass  # pragma: no cover
 
 
 def block_random_value(block_spec):

@@ -292,3 +292,25 @@ def remove_null_values(d: Dict) -> Dict:
     for key in [key for key, value in bd.items() if isinstance(value, dict)]:
         bd[key] = remove_null_values(bd[key])
     return bd
+
+
+def get_nested_value(obj, key):
+    """
+    Gets a value from object `obj`. Dot '.' separates nested
+    objects.
+
+    Args:
+        obj (dict): Object to get value
+        key (str): Key to acess object
+
+    Returns:
+        value
+
+    Raises:
+        KeyError: If can't find key
+    """
+    if "." in key:
+        dot_idx = key.index(".")
+        k1, k2 = key[:dot_idx], key[dot_idx + 1 :]
+        return get_nested_value(obj[k1], k2)
+    return obj[key]

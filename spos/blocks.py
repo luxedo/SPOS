@@ -31,7 +31,7 @@ from string import ascii_lowercase, ascii_uppercase, digits
 
 from .exceptions import StaticValueMismatchWarning
 from .typing import Any, Dict, Message, Optional, Tuple, Union
-from .utils import nest_keys, truncate_bits
+from .utils import get_nested_value, nest_keys, truncate_bits
 
 
 # ---------------------------------------------------------------------
@@ -61,6 +61,7 @@ class BlockBase(abc.ABC):
         self.validate_block_spec_keys()
         self.key = block_spec.get("key")
         self.type = block_spec.get("type")
+        self.location = block_spec.get("location", self.key)
         if not hasattr(self, "value"):
             self.value = block_spec.get("value")
         if not hasattr(self, "bits"):
@@ -153,7 +154,7 @@ class BlockBase(abc.ABC):
         all_keys = (
             set(self.required)
             | set(self.optional)
-            | set(("key", "value", "type"))
+            | set(("key", "value", "type", "location"))
         )
         for key in self.block_spec:
             if key not in all_keys:
@@ -207,6 +208,7 @@ class BlockBase(abc.ABC):
         """
         return {
             "key": self.key,
+            "location": self.location,
             "type": self.type,
             "max_bits": self.max_bits,
             "min_bits": self.min_bits,
@@ -409,31 +411,10 @@ class ObjectBlock(BlockBase):
     required = {"blocklist": "blocklist"}
     blocklist = None
 
-    def get_value(self, obj, key):
-        """
-        Gets a value from object `obj`. Dot '.' separates nested
-        objects.
-
-        Args:
-            obj (dict): Object to get value
-            key (str): Key to acess object
-
-        Returns:
-            value
-
-        Raises:
-            KeyError: If can't find key
-        """
-        if "." in key:
-            dot_idx = key.index(".")
-            k1, k2 = key[:dot_idx], key[dot_idx + 1 :]
-            return self.get_value(obj[k1], k2)
-        return obj[key]
-
     @validate_encode_input_types(dict)
     def _bin_encode(self, value):
         values = [
-            self.get_value(value, block.key)
+            get_nested_value(value, block.location)
             if block.value is None
             else block.value
             for block in self.blocklist
@@ -658,10 +639,10 @@ class Block:
 
     # Mock methods for linters/mypy
     def bin_decode(self, message):
-        pass
+        pass  # pragma: no cover
 
     def bin_encode(self, value):
-        pass
+        pass  # pragma: no cover
 
     def consume(self, message):
-        pass
+        pass  # pragma: no cover

@@ -819,6 +819,24 @@ class TestEncodeDecode(TestCase):
             },
         )
 
+    def test_encode_location(self):
+        payload_spec = {
+            "name": "test encode location",
+            "version": 1,
+            "body": [
+                {
+                    "key": "pressure",
+                    "type": "float",
+                    "bits": 10,
+                    "location": "my_sensor.read.value",
+                }
+            ],
+        }
+        payload_data = {"my_sensor": {"read": {"value": 0.3}}}
+        decoded = {"pressure": 0.3}
+        message = spos.encode(payload_data, payload_spec, "hex")
+        self.assertDict(spos.decode(message, payload_spec)["body"], decoded)
+
 
 class TestDecodeFromSpecs(TestCase):
     def setUp(self):
