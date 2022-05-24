@@ -819,16 +819,16 @@ class TestEncodeDecode(TestCase):
             },
         )
 
-    def test_encode_location_0(self):
+    def test_encode_alias_0(self):
         payload_spec = {
-            "name": "test encode location 0",
+            "name": "test encode alias 0",
             "version": 1,
             "body": [
                 {
-                    "key": "pressure",
+                    "key": "my_sensor.read.value",
+                    "alias": "pressure",
                     "type": "float",
                     "bits": 10,
-                    "location": "my_sensor.read.value",
                 }
             ],
         }
@@ -837,9 +837,9 @@ class TestEncodeDecode(TestCase):
         message = spos.encode(payload_data, payload_spec, "hex")
         self.assertDict(spos.decode(message, payload_spec)["body"], decoded)
 
-    def test_encode_location_1(self):
+    def test_encode_alias_1(self):
         payload_spec = {
-            "name": "test encode location 1",
+            "name": "test encode alias 1",
             "version": 2,
             "body": [
                 {
@@ -847,10 +847,10 @@ class TestEncodeDecode(TestCase):
                     "type": "object",
                     "blocklist": [
                         {
-                            "key": "pressure",
+                            "key": "read.value",
+                            "alias": "pressure",
                             "type": "float",
                             "bits": 10,
-                            "location": "read.value",
                         }
                     ],
                 }

@@ -248,8 +248,7 @@ spos.encode(payload_data, payload_spec, output="bin")
 
 - **value** (any), optional: Static value for the `block`. Must be consistent with defined type.
 
-- **location** (string), optional: Overrides `key` for accessing the value to encode. Does
-  nothing when decoding. Eg:
+- **alias** (string), optional: Overrides `key` when decoding. Does nothing when encoding. Eg:
 
 ```python
 payload_spec = {
@@ -258,8 +257,8 @@ payload_spec = {
   "body": [{
     "type": "integer",
     "bits": 8,
-    "key": "my key",
-    "location": "far.away.key"
+    "key": "far.away.key"
+    "alias": "my key",
   }]
 payload_data = {
   "far": {
