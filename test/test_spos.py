@@ -23,6 +23,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
 import spos
+
 from . import TestCase
 
 
@@ -817,6 +818,48 @@ class TestEncodeDecode(TestCase):
                 "crc8": True,
             },
         )
+
+    def test_encode_alias_0(self):
+        payload_spec = {
+            "name": "test encode alias 0",
+            "version": 1,
+            "body": [
+                {
+                    "key": "my_sensor.read.value",
+                    "alias": "pressure",
+                    "type": "float",
+                    "bits": 10,
+                }
+            ],
+        }
+        payload_data = {"my_sensor": {"read": {"value": 0.3}}}
+        decoded = {"pressure": 0.3}
+        message = spos.encode(payload_data, payload_spec, "hex")
+        self.assertDict(spos.decode(message, payload_spec)["body"], decoded)
+
+    def test_encode_alias_1(self):
+        payload_spec = {
+            "name": "test encode alias 1",
+            "version": 2,
+            "body": [
+                {
+                    "key": "my_sensor",
+                    "type": "object",
+                    "blocklist": [
+                        {
+                            "key": "read.value",
+                            "alias": "pressure",
+                            "type": "float",
+                            "bits": 10,
+                        }
+                    ],
+                }
+            ],
+        }
+        payload_data = {"my_sensor": {"read": {"value": 0.3}}}
+        decoded = {"my_sensor": {"pressure": 0.3}}
+        message = spos.encode(payload_data, payload_spec, "hex")
+        self.assertDict(spos.decode(message, payload_spec)["body"], decoded)
 
 
 class TestDecodeFromSpecs(TestCase):

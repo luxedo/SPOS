@@ -24,9 +24,9 @@ SOFTWARE.
 """
 import random
 
-from . import utils, encode
+from . import encode, utils
 from .blocks import Block
-from .typing import Any, Dict, Tuple, PayloadSpec, Message
+from .typing import Any, Dict, Message, PayloadSpec, Tuple
 
 
 def seed(a: Any = None, version: int = 2) -> None:
@@ -122,7 +122,7 @@ class RandomBlock:
 
     # Mock methods for linters/mypy
     def cache_message(self):
-        pass
+        pass  # pragma: no cover
 
 
 def block_random_value(block_spec):

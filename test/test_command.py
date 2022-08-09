@@ -28,6 +28,7 @@ import tempfile
 
 from spos import command
 from spos import random as srandom
+
 from . import TestCase, test_specs
 
 

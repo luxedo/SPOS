@@ -29,9 +29,9 @@ import random
 import re
 import sys
 
-from . import encode, decode, decode_from_specs, stats, __version__
+from . import __version__, decode, decode_from_specs, encode, stats
 from .random import random_payload
-from .typing import List, PayloadSpec, Message
+from .typing import List, Message, PayloadSpec
 
 
 def read_and_close_json(buf):

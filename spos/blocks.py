@@ -23,16 +23,15 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
 import abc
-from string import ascii_uppercase, ascii_lowercase, digits
 import copy
 import math
 import re
 import warnings
+from string import ascii_lowercase, ascii_uppercase, digits
 
-from .utils import truncate_bits, nest_keys
 from .exceptions import StaticValueMismatchWarning
-
-from .typing import Any, Dict, Union, Optional, Tuple, Message
+from .typing import Any, Dict, Message, Optional, Tuple, Union
+from .utils import get_nested_value, nest_keys, truncate_bits
 
 
 # ---------------------------------------------------------------------
@@ -62,6 +61,7 @@ class BlockBase(abc.ABC):
         self.validate_block_spec_keys()
         self.key = block_spec.get("key")
         self.type = block_spec.get("type")
+        self.alias = block_spec.get("alias", self.key)
         if not hasattr(self, "value"):
             self.value = block_spec.get("value")
         if not hasattr(self, "bits"):
@@ -154,7 +154,7 @@ class BlockBase(abc.ABC):
         all_keys = (
             set(self.required)
             | set(self.optional)
-            | set(("key", "value", "type"))
+            | set(("key", "value", "type", "alias"))
         )
         for key in self.block_spec:
             if key not in all_keys:
@@ -208,6 +208,7 @@ class BlockBase(abc.ABC):
         """
         return {
             "key": self.key,
+            "alias": self.alias,
             "type": self.type,
             "max_bits": self.max_bits,
             "min_bits": self.min_bits,
@@ -289,9 +290,9 @@ class IntegerBlock(BlockBase):
     def _bin_encode(self, value):
         value -= self.offset
         bits = self.bits
-        overflow = 2 ** bits - 1
+        overflow = 2**bits - 1
         if self.mode == "remainder":
-            bit_str = bin(value % (2 ** bits))
+            bit_str = bin(value % (2**bits))
         elif self.mode == "truncate":
             bit_str = bin(min([max([value, 0]), overflow]))
         return truncate_bits(bit_str, bits)
@@ -320,7 +321,7 @@ class FloatBlock(BlockBase):
             approx = math.floor
         elif self.approximation == "ceil":
             approx = math.ceil
-        overflow = 2 ** self.bits - 1
+        overflow = 2**self.bits - 1
         delta = self.upper - self.lower
         value = overflow * (value - self.lower) / delta
         bit_str = bin(approx(min([max([value, 0]), overflow])))
@@ -328,7 +329,7 @@ class FloatBlock(BlockBase):
 
     def _bin_decode(self, message):
         delta = self.upper - self.lower
-        overflow = 2 ** self.bits - 1
+        overflow = 2**self.bits - 1
         return int(message, 2) * delta / overflow + self.lower
 
 
@@ -410,31 +411,10 @@ class ObjectBlock(BlockBase):
     required = {"blocklist": "blocklist"}
     blocklist = None
 
-    def get_value(self, obj, key):
-        """
-        Gets a value from object `obj`. Dot '.' separates nested
-        objects.
-
-        Args:
-            obj (dict): Object to get value
-            key (str): Key to acess object
-
-        Returns:
-            value
-
-        Raises:
-            KeyError: If can't find key
-        """
-        if "." in key:
-            dot_idx = key.index(".")
-            k1, k2 = key[:dot_idx], key[dot_idx + 1 :]
-            return self.get_value(obj[k1], k2)
-        return obj[key]
-
     @validate_encode_input_types(dict)
     def _bin_encode(self, value):
         values = [
-            self.get_value(value, block.key)
+            get_nested_value(value, block.key)
             if block.value is None
             else block.value
             for block in self.blocklist
@@ -449,7 +429,7 @@ class ObjectBlock(BlockBase):
     def _bin_decode(self, message):
         obj = {}
         for block in self.blocklist:
-            obj[block.key], message = block.consume(message)
+            obj[block.alias], message = block.consume(message)
         obj = nest_keys(obj)
         return obj
 
@@ -659,10 +639,10 @@ class Block:
 
     # Mock methods for linters/mypy
     def bin_decode(self, message):
-        pass
+        pass  # pragma: no cover
 
     def bin_encode(self, value):
-        pass
+        pass  # pragma: no cover
 
     def consume(self, message):
-        pass
+        pass  # pragma: no cover
