@@ -22,6 +22,7 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
+
 import collections
 import copy
 import random
@@ -160,9 +161,9 @@ def flattened_keys(blocklist: Blocklist) -> List[Any]:
         if block_spec.get("type") == "object":
             nested = copy.deepcopy(block_spec.get("blocklist", []))
             for nested_spec in nested:
-                nested_spec[
-                    "key"
-                ] = f"{block_spec['key']}.{nested_spec['key']}"
+                nested_spec["key"] = (
+                    f"{block_spec['key']}.{nested_spec['key']}"
+                )
             keys.extend(flattened_keys(nested))
         else:
             keys.append(block_spec["key"])
