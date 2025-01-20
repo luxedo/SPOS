@@ -22,6 +22,7 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
+
 import abc
 import copy
 import math
@@ -414,9 +415,11 @@ class ObjectBlock(BlockBase):
     @validate_encode_input_types(dict)
     def _bin_encode(self, value):
         values = [
-            get_nested_value(value, block.key)
-            if block.value is None
-            else block.value
+            (
+                get_nested_value(value, block.key)
+                if block.value is None
+                else block.value
+            )
             for block in self.blocklist
         ]
         return "0b" + "".join(
